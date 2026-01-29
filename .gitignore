@@ -14,6 +14,9 @@ build/
 
 # Shaders compiled
 *.spv
+# Allow shader sources
+!shaders/*.vert
+!shaders/*.frag
 
 # OS
 .DS_Store
