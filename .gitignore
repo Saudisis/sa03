@@ -1,0 +1,20 @@
+﻿# Build folders
+cmake-build-*/
+build/
+
+# IDEs
+.idea/
+.vscode/
+
+# Compiled files
+*.exe
+*.dll
+*.lib
+*.a
+
+# Shaders compiled
+*.spv
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,366 @@
+{
+	"models": [
+		{ "id": "pln", "model": "assets/models/LargePlane.obj", "format": "OBJ" },
+
+		{ "id": "r_straight", "model": "assets/models/roads/straight.mgcg", "format": "MGCG" },
+		{ "id": "r_corner", "model": "assets/models/roads/corner.mgcg", "format": "MGCG" },
+		{ "id": "r_T", "model": "assets/models/roads/T.mgcg", "format": "MGCG" },
+		{ "id": "r_cross", "model": "assets/models/roads/cross.mgcg", "format": "MGCG" },
+
+		{ "id": "apt1", "model": "assets/models/city/apt_1.mgcg", "format": "MGCG" },
+		{ "id": "apt2", "model": "assets/models/city/apt_2.mgcg", "format": "MGCG" },
+		{ "id": "apt3", "model": "assets/models/city/apt_3.mgcg", "format": "MGCG" },
+		{ "id": "apt4", "model": "assets/models/city/apt_4.mgcg", "format": "MGCG" },
+		{ "id": "apt5", "model": "assets/models/city/apt_5.mgcg", "format": "MGCG" },
+		{ "id": "apt6", "model": "assets/models/city/apt_6.mgcg", "format": "MGCG" },
+
+		{ "id": "build1", "model": "assets/models/city/build_1.mgcg", "format": "MGCG" },
+		{ "id": "build2", "model": "assets/models/city/build_2.mgcg", "format": "MGCG" },
+		{ "id": "build3", "model": "assets/models/city/build_3.mgcg", "format": "MGCG" },
+		{ "id": "build4", "model": "assets/models/city/build_4.mgcg", "format": "MGCG" },
+
+		{ "id": "off1", "model": "assets/models/city/off_1.mgcg", "format": "MGCG" },
+		{ "id": "off2", "model": "assets/models/city/off_2.mgcg", "format": "MGCG" },
+		{ "id": "off3", "model": "assets/models/city/off_3.mgcg", "format": "MGCG" },
+		{ "id": "off4", "model": "assets/models/city/off_4.mgcg", "format": "MGCG" },
+		{ "id": "off5", "model": "assets/models/city/off_5.mgcg", "format": "MGCG" },
+		{ "id": "off6", "model": "assets/models/city/off_6.mgcg", "format": "MGCG" },
+
+		{ "id": "store1", "model": "assets/models/city/store_1.mgcg", "format": "MGCG" },
+		{ "id": "store2", "model": "assets/models/city/store_2.mgcg", "format": "MGCG" },
+		{ "id": "store3", "model": "assets/models/city/store_3.mgcg", "format": "MGCG" },
+		{ "id": "store4", "model": "assets/models/city/store_4.mgcg", "format": "MGCG" },
+		{ "id": "store5", "model": "assets/models/city/store_5.mgcg", "format": "MGCG" },
+		{ "id": "store6", "model": "assets/models/city/store_6.mgcg", "format": "MGCG" },
+		{ "id": "store7", "model": "assets/models/city/store_7.mgcg", "format": "MGCG" },
+
+		{ "id": "school", "model": "assets/models/city/school.mgcg", "format": "MGCG" },
+
+		{ "id": "park1", "model": "assets/models/city/park.mgcg", "format": "MGCG" },
+		{ "id": "park2", "model": "assets/models/city/park_001.mgcg", "format": "MGCG" },
+		{ "id": "park3", "model": "assets/models/city/park_008.mgcg", "format": "MGCG" },
+		{ "id": "parking", "model": "assets/models/city/parking.mgcg", "format": "MGCG" },
+		{ "id": "lamp", "model": "assets/models/city/lamp.mgcg", "format": "MGCG" },
+		{ "id": "hydrant", "model": "assets/models/city/hydrant.mgcg", "format": "MGCG" },
+		{ "id": "phone", "model": "assets/models/city/phone.mgcg", "format": "MGCG" }
+	],
+
+	"textures": [
+		{ "id": "tRoad", "texture": "assets/textures/textures.png" },
+		{ "id": "tCity", "texture": "assets/textures/textures.png" }
+	],
+
+	"instances": [
+		{
+			"id": "ground",
+			"model": "pln",
+			"texture": "tCity",
+			"transform": [
+				260, 0, 0, 0,
+				0, 1, 0, -0.12,
+				0, 0, 260, 0,
+				0, 0, 0, 1
+			]
+		},
+
+		{ "id": "C_cNW", "model": "r_corner", "texture": "tRoad", "transform": [ -1,0,0,-24, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "C_cNE", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, 1,0,0, 24, 0,0,0,1 ] },
+		{ "id": "C_cSE", "model": "r_corner", "texture": "tRoad", "transform": [ 1,0,0, 24, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "C_cSW", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0, 1,-24, 0,1,0,0.02, -1,0,0,-24, 0,0,0,1 ] },
+
+		{ "id": "C_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-8, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "C_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,8 , 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "C_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-8, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "C_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0, 8, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "C_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+		{ "id": "C_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+		{ "id": "C_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+		{ "id": "C_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+
+		{ "id": "R_cNW", "model": "r_corner", "texture": "tRoad", "transform": [ -1,0,0, 56, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "R_cNE", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0,-1,104, 0,1,0,0.02, 1,0,0, 24, 0,0,0,1 ] },
+		{ "id": "R_cSE", "model": "r_corner", "texture": "tRoad", "transform": [ 1,0,0,104, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "R_cSW", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0, 1, 56, 0,1,0,0.02, -1,0,0,-24, 0,0,0,1 ] },
+
+		{ "id": "R_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,72, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "R_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,88 , 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "R_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,72, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "R_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0, 88, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "R_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,104, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+		{ "id": "R_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,104, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+		{ "id": "R_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1, 56, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+		{ "id": "R_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1, 56, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+
+		{ "id": "L_cNW", "model": "r_corner", "texture": "tRoad", "transform": [ -1,0,0, -104, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "L_cNE", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0,-1,-56, 0,1,0,0.02, 1,0,0, 24, 0,0,0,1 ] },
+		{ "id": "L_cSE", "model": "r_corner", "texture": "tRoad", "transform": [ 1,0,0,-56, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "L_cSW", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0, 1, -104, 0,1,0,0.02, -1,0,0,-24, 0,0,0,1 ]},
+
+		{ "id": "L_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-88, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "L_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-72 , 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+		{ "id": "L_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-88, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "L_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0, -72, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+		{ "id": "L_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,-56, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+		{ "id": "L_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,-56, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+		{ "id": "L_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1, -104, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+		{ "id": "L_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1, -104, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+
+		{"id": "LU_cNW", "model": "r_corner", "texture": "tRoad", "transform": [ -1,0,0, -104, 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "LU_cNE", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0,-1,-56, 0,1,0,0.02, 1,0,0, -64, 0,0,0,1 ] },
+		{ "id": "LU_cSE", "model": "r_corner", "texture": "tRoad", "transform": [ 1,0,0,-56, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "LU_cSW", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0, 1, -104, 0,1,0,0.02, -1,0,0,-112, 0,0,0,1 ]},
+
+		{ "id": "LU_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-88, 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "LU_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-72 , 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "LU_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-88, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "LU_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0, -72, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "LU_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,-56, 0,1,0,0.02, -1,0,0,-96, 0,0,0,1 ] },
+		{ "id": "LU_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,-56, 0,1,0,0.02, -1,0,0, -80, 0,0,0,1 ] },
+		{ "id": "LU_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1, -104, 0,1,0,0.02, -1,0,0,-96, 0,0,0,1 ] },
+		{ "id": "LU_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1, -104, 0,1,0,0.02, -1,0,0, -80, 0,0,0,1 ] },
+
+		{ "id": "CU_cNW", "model": "r_corner", "texture": "tRoad", "transform": [ -1,0,0,-24, 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "CU_cNE", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, 1,0,0, -64, 0,0,0,1 ] },
+		{ "id": "CU_cSE", "model": "r_corner", "texture": "tRoad", "transform": [ 1,0,0, 24, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "CU_cSW", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0, 1,-24, 0,1,0,0.02, -1,0,0,-112, 0,0,0,1 ] },
+
+		{ "id": "CU_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-8, 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "CU_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,8 , 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "CU_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-8, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "CU_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0, 8, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "CU_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0,-96, 0,0,0,1 ] },
+		{ "id": "CU_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0, -80, 0,0,0,1 ] },
+		{ "id": "CU_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, -1,0,0,-96, 0,0,0,1 ] },
+		{ "id": "CU_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, -1,0,0, -80, 0,0,0,1 ] },
+
+		{ "id": "RU_cNW", "model": "r_corner", "texture": "tRoad", "transform": [ -1,0,0, 56, 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "RU_cNE", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0,-1,104, 0,1,0,0.02, 1,0,0, -64, 0,0,0,1 ] },
+		{ "id": "RU_cSE", "model": "r_corner", "texture": "tRoad", "transform": [ 1,0,0,104, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "RU_cSW", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0, 1, 56, 0,1,0,0.02, -1,0,0,-112, 0,0,0,1 ] },
+
+		{ "id": "RU_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,72, 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "RU_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,88 , 0,1,0,0.02, 0,0,-1, -64, 0,0,0,1 ] },
+		{ "id": "RU_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,72, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "RU_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0, 88, 0,1,0,0.02, 0,0,1,-112, 0,0,0,1 ] },
+		{ "id": "RU_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,104, 0,1,0,0.02, -1,0,0,-96, 0,0,0,1 ] },
+		{ "id": "RU_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,104, 0,1,0,0.02, -1,0,0, -80, 0,0,0,1 ] },
+		{ "id": "RU_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1, 56, 0,1,0,0.02, -1,0,0,-96, 0,0,0,1 ] },
+		{ "id": "RU_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1, 56, 0,1,0,0.02, -1,0,0, -80, 0,0,0,1 ] }
+	],
+
+	"placements": [
+
+		{
+			"id": "center_stores",
+			"models": ["store1","store2","store3","store4","store5","store6","store7"],
+			"texture": "tCity",
+			"grid": { "nx": 5, "nz": 3, "dx": 6.0, "dz": 7.0 },
+			"origin": [-10, 0.3, 0],
+			"rotY": 0
+		},
+		{
+			"id": "center_stores_parking",
+			"model": "parking",
+			"texture": "tCity",
+			"points": [[-8,0.3,-10]],
+			"rotY": 90
+		},
+		{
+			"id": "center_stores_parking",
+			"model": "parking",
+			"texture": "tCity",
+			"points": [[8,0.3,-10]],
+			"rotY": -90
+		},
+
+		{
+			"id": "right_office_inside",
+			"models": ["off1","off2","off3","off4","off5","off6"],
+			"texture": "tCity",
+			"grid": { "nx": 5, "nz": 2, "dx": 6.0, "dz": 7.0},
+			"origin": [68, 0.3, -12],
+			"rotY": -90
+		},
+		{
+			"id": "right_office_parking",
+			"model": "parking",
+			"texture": "tCity",
+			"points": [[88,0.3,8]],
+			"rotY": 90
+		},
+		{
+			"id": "right_office_park",
+			"model": "park2",
+			"texture": "tCity",
+			"points": [[72,0.3,8]]
+		},
+
+		{
+			"id": "left_block1_buildings",
+			"models": ["build1","build2","build3"],
+			"texture": "tCity",
+			"grid": { "nx": 2, "nz": 2, "dx": 12, "dz": 12 },
+			"origin": [-84, 0.3, 0],
+			"rotY": 0
+		},
+
+		{
+			"id": "LU_apts_top",
+			"models": ["apt1","apt2","apt3"],
+			"texture": "tCity",
+			"grid": { "nx": 4, "nz": 1, "dx": 6.0, "dz": 6.0 },
+			"origin": [-86, 0.3, -100],
+			"rotY": 0
+		},
+
+		{
+			"id": "LU_apts_left",
+			"models": ["apt1","apt2","apt3","build4"],
+			"texture": "tCity",
+			"grid": { "nx": 1, "nz": 3, "dx": 6.0, "dz": 6.0 },
+			"origin": [-92, 0.3, -96],
+			"rotY": 90
+		},
+
+		{
+			"id": "LU_parks",
+			"model": "park2",
+			"texture": "tCity",
+			"points": [[-86,0.3,-80],[-72,0.3,-92]]
+		},
+
+		{
+			"id": "LU_parking",
+			"model": "parking",
+			"texture": "tCity",
+			"points": [[-72,0.3,-80]]
+		},
+
+		{
+			"id": "CU_entertainment_plaza",
+			"models": ["apt4","apt5","apt6","store7"],
+			"texture": "tCity",
+			"grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 8.0 },
+			"origin": [-16, 0.3, -96],
+			"rotY": 0
+		},
+		{
+			"id": "top_off",
+			"model": "off1",
+			"texture": "tCity",
+			"points": [[8,0.3,-88]],
+			"rotY": 90
+		},
+		{
+			"id": "top_plaza_park",
+			"model": "park1",
+			"texture": "tCity",
+			"points": [[-8,0.3,-80]],
+			"rotY": 90
+		},
+
+		{
+			"id": "top_plaza_circus",
+			"model": "park3",
+			"texture": "tCity",
+			"points": [[8,0.3,-80]],
+			"rotY": 90
+		},
+
+		{
+			"id": "top_plaza_phones",
+			"model": "phone",
+			"texture": "tCity",
+			"points": [[-16,0.3,-72],[16,0.3,-72]],
+			"rotY": 90
+		},
+		{
+			"id": "top_plaza_hydrants",
+			"model": "hydrant",
+			"texture": "tCity",
+			"points": [[-8,0.3,-88],[8,0.3,-72]]
+		},
+
+		{
+			"id": "RU_apts",
+			"models": ["apt1","apt2","apt3","apt4","apt5","apt6"],
+			"texture": "tCity",
+			"grid": { "nx": 8, "nz": 1, "dx": 4.0, "dz": 4.0},
+			"origin": [66, 0.3, -96],
+			"rotY": -90
+		},
+		{
+			"id": "UR_park1",
+			"model": "park1",
+			"texture": "tCity",
+			"points": [[88,0.3,-80]],
+			"rotY": 90
+		},
+		{
+			"id": "UR_park2",
+			"model": "park1",
+			"texture": "tCity",
+			"points": [[72,0.3,-80]],
+			"rotY": -90
+		},
+
+		{
+			"id": "CL_creative_street_stores",
+			"models": ["store1","store3","store5","store7"],
+			"texture": "tCity",
+			"grid": { "nx": 4, "nz": 1, "dx": 6.0, "dz": 6.0 },
+			"origin": [-60, 0.3, -6],
+			"rotY": 0
+		},
+		{
+			"id": "CL_creative_offices",
+			"models": ["off2","off4","off6"],
+			"texture": "tCity",
+			"grid": { "nx": 3, "nz": 1, "dx": 6.0, "dz": 6.0 },
+			"origin": [-60, 0.3, 6],
+			"rotY": 180
+		},
+		{
+			"id": "CL_creative_apts",
+			"models": ["apt2","apt4","apt6"],
+			"texture": "tCity",
+			"grid": { "nx": 1, "nz": 3, "dx": 6.0, "dz": 6.0 },
+			"origin": [-36, 0.3, -6],
+			"rotY": -90
+		},
+		{
+			"id": "CL_creative_park",
+			"model": "park3",
+			"texture": "tCity",
+			"points": [[-48,0.3,0]]
+		},
+		{
+			"id": "CL_creative_parking",
+			"model": "parking",
+			"texture": "tCity",
+			"points": [[-36,0.3,12]],
+			"rotY": 90
+		},
+		{
+			"id": "CL_creative_phones",
+			"model": "phone",
+			"texture": "tCity",
+			"points": [[-54,0.3,-18],[-42,0.3,-18]]
+		},
+		{
+			"id": "CL_creative_hydrant",
+			"model": "hydrant",
+			"texture": "tCity",
+			"points": [[-66,0.3,0]]
+		},
+		{
+			"id": "CL_creative_lamps",
+			"model": "lamp",
+			"texture": "tCity",
+			"points": [[-60,0.3,-18],[-36,0.3,-18],[-60,0.3,18],[-36,0.3,18]]
+		}
+
+
+
+	]
+}

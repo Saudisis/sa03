@@ -1,0 +1,573 @@
+{
+  "models": [
+    { "id": "pln", "model": "assets/models/LargePlane.obj", "format": "OBJ" },
+
+    { "id": "r_straight", "model": "assets/models/roads/straight.mgcg", "format": "MGCG" },
+    { "id": "r_corner", "model": "assets/models/roads/corner.mgcg", "format": "MGCG" },
+    { "id": "r_T", "model": "assets/models/roads/T.mgcg", "format": "MGCG" },
+    { "id": "r_cross", "model": "assets/models/roads/cross.mgcg", "format": "MGCG" },
+
+    { "id": "apt1", "model": "assets/models/city/apt_1.mgcg", "format": "MGCG" },
+    { "id": "apt2", "model": "assets/models/city/apt_2.mgcg", "format": "MGCG" },
+    { "id": "apt3", "model": "assets/models/city/apt_3.mgcg", "format": "MGCG" },
+    { "id": "apt4", "model": "assets/models/city/apt_4.mgcg", "format": "MGCG" },
+    { "id": "apt5", "model": "assets/models/city/apt_5.mgcg", "format": "MGCG" },
+    { "id": "apt6", "model": "assets/models/city/apt_6.mgcg", "format": "MGCG" },
+
+    { "id": "build1", "model": "assets/models/city/build_1.mgcg", "format": "MGCG" },
+    { "id": "build2", "model": "assets/models/city/build_2.mgcg", "format": "MGCG" },
+    { "id": "build3", "model": "assets/models/city/build_3.mgcg", "format": "MGCG" },
+    { "id": "build4", "model": "assets/models/city/build_4.mgcg", "format": "MGCG" },
+
+    { "id": "off1", "model": "assets/models/city/off_1.mgcg", "format": "MGCG" },
+    { "id": "off2", "model": "assets/models/city/off_2.mgcg", "format": "MGCG" },
+    { "id": "off3", "model": "assets/models/city/off_3.mgcg", "format": "MGCG" },
+    { "id": "off4", "model": "assets/models/city/off_4.mgcg", "format": "MGCG" },
+    { "id": "off5", "model": "assets/models/city/off_5.mgcg", "format": "MGCG" },
+    { "id": "off6", "model": "assets/models/city/off_6.mgcg", "format": "MGCG" },
+
+    { "id": "store1", "model": "assets/models/city/store_1.mgcg", "format": "MGCG" },
+    { "id": "store2", "model": "assets/models/city/store_2.mgcg", "format": "MGCG" },
+    { "id": "store3", "model": "assets/models/city/store_3.mgcg", "format": "MGCG" },
+    { "id": "store4", "model": "assets/models/city/store_4.mgcg", "format": "MGCG" },
+    { "id": "store5", "model": "assets/models/city/store_5.mgcg", "format": "MGCG" },
+    { "id": "store6", "model": "assets/models/city/store_6.mgcg", "format": "MGCG" },
+    { "id": "store7", "model": "assets/models/city/store_7.mgcg", "format": "MGCG" },
+
+    { "id": "school", "model": "assets/models/city/school.mgcg", "format": "MGCG" },
+
+    { "id": "park1", "model": "assets/models/city/park.mgcg", "format": "MGCG" },
+    { "id": "park2", "model": "assets/models/city/park_001.mgcg", "format": "MGCG" },
+    { "id": "park3", "model": "assets/models/city/park_008.mgcg", "format": "MGCG" },
+    { "id": "park4", "model": "assets/models/city/park4.mgcg", "format": "MGCG" },
+
+    { "id": "wheel_park", "model": "assets/models/city/wheel_park.mgcg", "format": "MGCG" },
+
+
+    { "id": "parking", "model": "assets/models/city/parking.mgcg", "format": "MGCG" },
+    { "id": "lamp", "model": "assets/models/city/lamp.mgcg", "format": "MGCG" },
+    { "id": "hydrant", "model": "assets/models/city/hydrant.mgcg", "format": "MGCG" },
+    { "id": "phone", "model": "assets/models/city/phone.mgcg", "format": "MGCG" },
+    { "id": "chair", "model": "assets/models/city/chair_001.mgcg", "format": "MGCG" },
+    { "id": "tree", "model": "assets/models/city/plant_003.mgcg", "format": "MGCG" },
+    { "id": "pot", "model": "assets/models/city/plant_005.mgcg", "format": "MGCG" },
+
+    { "id": "food1", "model": "assets/models/city/food1.mgcg", "format": "MGCG" },
+    { "id": "food2", "model": "assets/models/city/food2.mgcg", "format": "MGCG" },
+    { "id": "food3", "model": "assets/models/city/food3.mgcg", "format": "MGCG" },
+
+    { "id": "kids", "model": "assets/models/city/kids.mgcg", "format": "MGCG" },
+    { "id": "kids2", "model": "assets/models/city/kids2.mgcg", "format": "MGCG" },
+
+    { "id": "basket", "model": "assets/models/city/basket.mgcg", "format": "MGCG" },
+    { "id": "futbol", "model": "assets/models/city/futbol.mgcg", "format": "MGCG" },
+    { "id": "tenis", "model": "assets/models/city/tenis.mgcg", "format": "MGCG" }
+  ],
+
+  "textures": [
+    { "id": "tRoad", "texture": "assets/textures/textures.png" },
+    { "id": "tCity", "texture": "assets/textures/textures.png" }
+  ],
+
+  "instances": [
+    {
+      "id": "ground",
+      "model": "pln",
+      "texture": "tCity",
+      "transform": [
+        260, 0, 0, 0,
+        0, 1, 0, -0.12,
+        0, 0, 260, 0,
+        0, 0, 0, 1
+      ]
+    },
+
+    { "id": "C_xSW", "model": "r_cross", "texture": "tRoad", "transform": [ -1,0,0,-24, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+    { "id": "C_xSE", "model": "r_cross", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, 1,0,0, 24, 0,0,0,1 ] },
+    { "id": "C_xNE", "model": "r_cross", "texture": "tRoad", "transform": [ 1,0,0, 24, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+    { "id": "C_xNW", "model": "r_cross", "texture": "tRoad", "transform": [ 0,0, 1,-24, 0,1,0,0.02, -1,0,0,-24, 0,0,0,1 ] },
+
+    { "id": "C_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-8, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+    { "id": "C_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0, 8, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+    { "id": "C_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-8, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+    { "id": "C_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,8 , 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+    { "id": "C_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+    { "id": "C_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+    { "id": "C_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+    { "id": "C_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1, 24, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+
+    { "id": "L_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-40, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+    { "id": "L_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-56, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+    { "id": "L_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-72, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+    { "id": "L_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-72, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+    { "id": "L_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-40, 0,1,0,0.02, 0,0,-1,24, 0,0,0,1 ] },
+    { "id": "L_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-56, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+
+    { "id": "L_tNW", "model": "r_T", "texture": "tRoad", "transform": [ 0,0, 1, -72, 0,1,0,0.02, -1,0,0,-24, 0,0,0,1 ]},
+    { "id": "L_tSW", "model": "r_T", "texture": "tRoad", "transform": [ 0,0, 1, -72, 0,1,0,0.02, -1,0,0,24, 0,0,0,1 ]},
+
+    { "id": "R_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,40, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+    { "id": "R_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,56, 0,1,0,0.02, 0,0,1,-24, 0,0,0,1 ] },
+    { "id": "R_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,72, 0,1,0,0.02, -1,0,0,-8, 0,0,0,1 ] },
+    { "id": "R_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,72, 0,1,0,0.02, -1,0,0, 8, 0,0,0,1 ] },
+    { "id": "R_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,40, 0,1,0,0.02, 0,0,-1,24, 0,0,0,1 ] },
+    { "id": "R_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,56, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },
+
+    { "id": "R_tNW", "model": "r_T", "texture": "tRoad", "transform": [ 0,0, -1, 72, 0,1,0,0.02, -1,0,0,-24, 0,0,0,1 ]},
+    { "id": "R_tSW", "model": "r_T", "texture": "tRoad", "transform": [ 0,0, -1, 72, 0,1,0,0.02, -1,0,0,24, 0,0,0,1 ]},
+
+    { "id": "CU_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0,-40, 0,0,0,1 ] },
+    { "id": "CU_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0,-56, 0,0,0,1 ] },
+    { "id": "CU_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,24, 0,1,0,0.02, -1,0,0,-40, 0,0,0,1 ] },
+    { "id": "CU_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,24, 0,1,0,0.02, -1,0,0,-56, 0,0,0,1 ] },
+
+    { "id": "LU_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-72, 0,1,0,0.02, -1,0,0,-40, 0,0,0,1 ] },
+    { "id": "LU_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-72, 0,1,0,0.02, -1,0,0, -56, 0,0,0,1 ] },
+
+    { "id": "RU_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,72, 0,1,0,0.02, -1,0,0,-40, 0,0,0,1 ] },
+    { "id": "RU_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,72, 0,1,0,0.02, -1,0,0,-56, 0,0,0,1 ] },
+
+    { "id": "C_SW", "model": "r_corner", "texture": "tRoad", "transform": [ -1,0,0,-72, 0,1,0,0.02, 0,0,-1, 72, 0,0,0,1 ] },
+    { "id": "C_SE", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0,-1, 72, 0,1,0,0.02, 1,0,0, 72, 0,0,0,1 ] },
+    { "id": "C_NE", "model": "r_corner", "texture": "tRoad", "transform": [ 1,0,0, 72, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ] },
+    { "id": "C_NW", "model": "r_corner", "texture": "tRoad", "transform": [ 0,0, 1,-72, 0,1,0,0.02, -1,0,0,-72, 0,0,0,1 ] },
+
+    { "id": "LD_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-72, 0,1,0,0.02, -1,0,0,40, 0,0,0,1 ] },
+    { "id": "LD_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-72, 0,1,0,0.02, -1,0,0,56, 0,0,0,1 ] },
+
+    { "id": "RD_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,72, 0,1,0,0.02, -1,0,0,40, 0,0,0,1 ] },
+    { "id": "RD_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,-1,72, 0,1,0,0.02, -1,0,0,56, 0,0,0,1 ] },
+
+    { "id": "CD_e0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0,40, 0,0,0,1 ] },
+    { "id": "CD_e1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,-24, 0,1,0,0.02, -1,0,0,56, 0,0,0,1 ] },
+    { "id": "CD_w0", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,24, 0,1,0,0.02, -1,0,0,40, 0,0,0,1 ] },
+    { "id": "CD_w1", "model": "r_straight", "texture": "tRoad", "transform": [ 0,0,1,24, 0,1,0,0.02, -1,0,0,56, 0,0,0,1 ] },
+
+    { "id": "LU_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-40, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ] },
+    { "id": "LU_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-56, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ] },
+
+    { "id": "LD_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-40, 0,1,0,0.02, 0,0,-1,72, 0,0,0,1 ] },
+    { "id": "LD_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-56, 0,1,0,0.02, 0,0,-1, 72, 0,0,0,1 ] },
+
+    { "id": "RU_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,40, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ] },
+    { "id": "RU_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,56, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ] },
+
+    { "id": "RD_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,40, 0,1,0,0.02, 0,0,-1,72, 0,0,0,1 ] },
+    { "id": "RD_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,56, 0,1,0,0.02, 0,0,-1, 72, 0,0,0,1 ] },
+
+    { "id": "CU_n0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-8, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ] },
+    { "id": "CU_n1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0, 8, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ] },
+
+    { "id": "CD_s0", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,-8, 0,1,0,0.02, 0,0,-1, 72, 0,0,0,1 ] },
+    { "id": "CD_s1", "model": "r_straight", "texture": "tRoad", "transform": [ 1,0,0,8 , 0,1,0,0.02, 0,0,-1, 72, 0,0,0,1 ] },
+
+    { "id": "U_tNW", "model": "r_T", "texture": "tRoad", "transform": [ 1,0, 0, -24, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ]},
+    { "id": "U_tNE", "model": "r_T", "texture": "tRoad", "transform": [ 1,0, 0, 24, 0,1,0,0.02, 0,0,1,-72, 0,0,0,1 ]},
+
+
+    { "id": "D_tSE", "model": "r_T", "texture": "tRoad", "transform": [ 1,0, 0, 24, 0,1,0,0.02, 0,0,-1,72, 0,0,0,1 ]},
+    { "id": "D_tSW", "model": "r_T", "texture": "tRoad", "transform": [ 1,0, 0, -24, 0,1,0,0.02, 0,0,-1,72, 0,0,0,1 ]}
+
+  ],
+
+  "placements": [
+
+    {
+      "id": "center_stores_front",
+      "models": ["store1","store2","store3"],
+      "texture": "tCity",
+      "grid": { "nx": 5, "nz": 1, "dx": 6.0, "dz": 7.0 },
+      "origin": [-12, 0.3, 14],
+      "rotY": 0
+    },
+    {
+      "id": "center_stores_left",
+      "models": ["store4","store5","store6","store1"],
+      "texture": "tCity",
+      "grid": { "nx": 2, "nz": 3, "dx": 6.0, "dz": 7.0 },
+      "origin": [-12, 0.3, -5],
+      "rotY": 180
+    },
+    {
+      "id": "center_stores_back",
+      "models": ["store5","store4","store3","store1","store7"],
+      "texture": "tCity",
+      "grid": { "nx": 5, "nz": 1, "dx": 6.0, "dz": 7.0 },
+      "origin": [-12, 0.3, -12],
+      "rotY": 180
+    },
+
+    {
+      "id": "center_stores_park",
+      "model": "park1",
+      "texture": "tCity",
+      "points": [[8,0.3,2]],
+      "rotY": 90
+    },
+
+    {
+      "id": "center_stores_chair",
+      "model": "chair",
+      "texture": "tCity",
+      "points": [[2,0.3,-8], [6,0.3,-8], [10,0.3,-8]]
+    },
+
+
+    {
+      "id": "center_down_front",
+      "models": ["apt1","apt2","apt3","apt4"],
+      "texture": "tCity",
+      "grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 7.0 },
+      "origin": [-12, 0.3, 62],
+      "rotY": 0
+    },
+
+    {
+      "id": "center_down_right",
+      "models": ["off1","off2","off3","off4","off5","off6"],
+      "texture": "tCity",
+      "grid": { "nx": 2, "nz": 4, "dx": 6.0, "dz": 5.0 },
+      "origin": [7, 0.3, 41],
+      "rotY": 90
+    },
+
+    {
+      "id": "center_down_back",
+      "models": ["apt5","apt6","apt3","apt4"],
+      "texture": "tCity",
+      "grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 7.0 },
+      "origin": [-12, 0.3, 35],
+      "rotY": 180
+    },
+
+    {
+      "id": "center_down_parking1",
+      "model": "parking",
+      "texture": "tCity",
+      "points": [[-8,0.3,50]],
+      "rotY": -90
+    },
+
+    {
+      "id": "center_down_lamp",
+      "model": "lamp",
+      "texture": "tCity",
+      "points": [[-14,0.3,40], [-10,0.3,40], [-6,0.3,40],[-2,0.3,40], [2,0.3,40], [2,0.3,44], [2,0.3,48],[2,0.3,52],[2,0.3,56]]
+    },
+
+    {
+      "id": "center_up_front",
+      "models": ["build1","build2","build3"],
+      "texture": "tCity",
+      "grid": { "nx": 2, "nz": 2, "dx": 16.0, "dz": 16.0 },
+      "origin": [-8, 0.3, -58],
+      "rotY": 0
+    },
+
+    {
+      "id": "center_up_tree",
+      "model": "tree",
+      "texture": "tCity",
+      "points": [[-15,0.3,-34], [-10,0.3,-34],[-5,0.3,-34],[0,0.3,-34],[5,0.3,-34],[10,0.3,-34],[15,0.3,-34]]
+    },
+
+
+
+
+
+
+
+    {
+      "id": "center_right_back1",
+      "models": ["store1","apt2","off3"],
+      "texture": "tCity",
+      "grid": { "nx": 5, "nz": 1, "dx": 6.0, "dz": 7.0 },
+      "origin": [36, 0.3, -14],
+      "rotY": 180
+    },
+    {
+      "id": "center_right_back_front1",
+      "models": ["store1","apt2","off3"],
+      "texture": "tCity",
+      "grid": { "nx": 5, "nz": 1, "dx": 6.0, "dz": 7.0 },
+      "origin": [36, 0.3, -10],
+      "rotY": 0
+    },
+
+    {
+      "id": "center_right_back2",
+      "models": ["store1","apt2","off3"],
+      "texture": "tCity",
+      "grid": { "nx": 5, "nz": 1, "dx": 6.0, "dz": 7.0 },
+      "origin": [36, 0.3, 10],
+      "rotY": 180
+    },
+    {
+      "id": "center_right_back_front2",
+      "models": ["store1","apt2","off3"],
+      "texture": "tCity",
+      "grid": { "nx": 5, "nz": 1, "dx": 6.0, "dz": 7.0 },
+      "origin": [36, 0.3, 14],
+      "rotY": 0
+    },
+
+    {
+      "id": "center_right_sport",
+      "models": ["futbol","basket"],
+      "texture": "tCity",
+      "grid": { "nx": 2, "nz": 1, "dx": 16.0, "dz": 7.0 },
+      "origin": [40, 0.3, 0],
+      "rotY": 90
+    },
+
+
+    {
+      "id": "bottom_right_circus",
+      "models": ["park3"],
+      "texture": "tCity",
+      "grid": { "nx": 1, "nz": 1, "dx": 8.0, "dz": 8.0 },
+      "origin": [55, 0.3, 40],
+      "rotY": 180
+    },
+
+
+    {
+      "id": "bottom_right_donut",
+      "models": ["food1"],
+      "texture": "tCity",
+      "grid": { "nx": 1, "nz": 1, "dx": 8.0, "dz": 8.0 },
+      "origin": [35, 0.3, 38],
+      "rotY": 180
+    },
+
+    {
+      "id": "bottom_right_slushies",
+      "models": ["food2"],
+      "texture": "tCity",
+      "grid": { "nx": 1, "nz": 1, "dx": 8.0, "dz": 8.0 },
+      "origin": [35, 0.3, 48],
+      "rotY": -90
+    },
+
+    {
+      "id": "bottom_right_hamburguer",
+      "models": ["food3"],
+      "texture": "tCity",
+      "grid": { "nx": 1, "nz": 1, "dx": 8.0, "dz": 8.0 },
+      "origin": [35, 0.3, 58],
+      "rotY": -90
+    },
+
+    {
+      "id": "bottom_right_wheel",
+      "model": "wheel_park",
+      "texture": "tCity",
+      "points": [[55,0.3,56]],
+      "rotY": 90
+    },
+
+    {
+      "id": "bottom_right_parking1",
+      "model": "parking",
+      "texture": "tCity",
+      "points": [[40,0.3,56]],
+      "rotY": 0
+    },
+    {
+      "id": "bottom_right_parking2",
+      "model": "parking",
+      "texture": "tCity",
+      "points": [[40,0.3,40]],
+      "rotY": 180
+    },
+
+
+
+
+
+    {
+      "id": "up_right_back1",
+      "models": ["store2","apt3","off4","build4"],
+      "texture": "tCity",
+      "grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 10.0 },
+      "origin": [36, 0.3, -60],
+      "rotY": 180
+    },
+
+    {
+      "id": "up_right_front1",
+      "models": ["store1","apt1","off1","off2"],
+      "texture": "tCity",
+      "grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 10.0 },
+      "origin": [36, 0.3, -50],
+      "rotY": 0
+    },
+
+    {
+      "id": "up_right_parking1",
+      "model": "parking",
+      "texture": "tCity",
+      "points": [[40,0.3,-40],[56,0.3,-40]],
+      "rotY": 180
+    },
+
+    {
+      "id": "up_right_lamp_parking",
+      "model": "lamp",
+      "texture": "tCity",
+      "points": [[48,0.3,-40], [48,0.3,-45],[48,0.3,-35]]
+    },
+
+    {
+      "id": "up_right_lamp_park",
+      "model": "lamp",
+      "texture": "tCity",
+      "points": [[35,0.3,-55], [40,0.3,-55],[45,0.3,-55],[50,0.3,-55],[55,0.3,-55]]
+    },
+
+    {
+      "id": "up_right_pot_park",
+      "model": "pot",
+      "texture": "tCity",
+      "points": [[37,0.3,-55],[43,0.3,-55],[48,0.3,-55],[53,0.3,-55],[58,0.3,-55]]
+    },
+
+
+    {
+      "id": "up_left_build",
+      "models": ["build2"],
+      "texture": "tCity",
+      "grid": { "nx": 2, "nz": 1, "dx": 18.0, "dz": 6.0 },
+      "origin": [-57, 0.3, -58],
+      "rotY": 0
+    },
+
+    {
+      "id": "up_left_off",
+      "models": ["off1","off2","off2","off1"],
+      "texture": "tCity",
+      "grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 6.0 },
+      "origin": [-60, 0.3, -35],
+      "rotY": 0
+    },
+
+    {
+      "id": "up_left_parking1",
+      "model": "parking",
+      "texture": "tCity",
+      "points": [[-40,0.3,-46]],
+      "rotY": 0
+    },
+
+    {
+      "id": "up_left_parking2",
+      "model": "parking",
+      "texture": "tCity",
+      "points": [[-56,0.3,-46]],
+      "rotY": 0
+    },
+
+    {
+      "id": "up_left_lamp_parking",
+      "model": "lamp",
+      "texture": "tCity",
+      "points": [[-48,0.3,-41]]
+    },
+
+    {
+      "id": "up_right_lamp_parking",
+      "model": "lamp",
+      "texture": "tCity",
+      "points": [[-48,0.3,-46]]
+    },
+
+    {
+      "id": "up_right_lamp_parking",
+      "model": "lamp",
+      "texture": "tCity",
+      "points": [[-48,0.3,-51]]
+    },
+
+    {
+      "id": "center_left_apt1",
+      "models": ["apt1","apt2","apt3","apt4"],
+      "texture": "tCity",
+      "grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 6.0 },
+      "origin": [-60, 0.3, -8],
+      "rotY": 0
+    },
+
+    {
+      "id": "center_left_apt1",
+      "models": ["apt1","apt2","apt3","apt4"],
+      "texture": "tCity",
+      "grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 6.0 },
+      "origin": [-60, 0.3, -12],
+      "rotY": 180
+    },
+
+    {
+      "id": "center_left_off",
+      "models": ["off5","off6","apt5","apt6"],
+      "texture": "tCity",
+      "grid": { "nx": 4, "nz": 1, "dx": 8.0, "dz": 6.0 },
+      "origin": [-60, 0.3, 0],
+      "rotY": 90
+    },
+
+    {
+      "id": "center_left_store",
+      "models": ["store5","store2","store3","store4","store5"],
+      "texture": "tCity",
+      "grid": { "nx": 5, "nz": 1, "dx": 6.0, "dz": 6.0 },
+      "origin": [-60, 0.3, 12],
+      "rotY": 0
+    },
+
+    {
+      "id": "bottom_left_entertainment",
+      "models": ["kids","kids2","tenis","park4"],
+      "texture": "tCity",
+      "grid": { "nx": 2, "nz": 2, "dx": 16.0, "dz": 16.0 },
+      "origin": [-56, 0.3, 40],
+      "rotY": 0
+    },
+
+    {
+      "id": "street_hydrants_sidewalk_clean",
+      "model": "hydrant",
+      "texture": "tCity",
+      "points": [
+        [-32,0.3,-32],[ 32,0.3,-32],
+        [-32,0.3, 32],[ 32,0.3, 32],
+
+        [-64,0.3,-32],[-64,0.3, 32],
+        [ 64,0.3,-32],[ 64,0.3, 32],
+
+        [-32,0.3,-64],[ 32,0.3,-64],
+        [-32,0.3, 64],[ 32,0.3, 64],
+
+        [-64,0.3,-64],[ 64,0.3,-64],
+        [-64,0.3, 64],[ 64,0.3, 64]
+      ]
+    },
+    {
+      "id": "street_phones_sidewalk",
+      "model": "phone",
+      "texture": "tCity",
+      "points": [
+        [-32,0.3,  0],[-16,0.3,  0],
+        [ 16,0.3,  0],[ 32,0.3,  0],
+
+        [-64,0.3,-40],[-40,0.3,-64],
+        [ 40,0.3,-64],[ 64,0.3,-40],
+        [-64,0.3, 40],[-40,0.3, 64],
+        [ 40,0.3, 64],[ 64,0.3, 40]
+
+      ],
+      "rotY": 90
+    }
+
+
+  ]
+}
