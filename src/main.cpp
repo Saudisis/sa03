@@ -56,6 +56,10 @@ protected:
     float panSpeed   = 120.0f;
     float flySpeed   = 140.0f;
 
+    // collision control
+    bool triggerCollision = false;  // set when T is pressed
+    bool collisionMode = false; // optional toggle
+    float hitDistance = 1.2f;   // how close cars need to be to "hit"
     // =========================
     // TRAFFIC
     // =========================
@@ -172,6 +176,48 @@ protected:
         if (Cars.empty()) return;
         trafficTime += dt;
 
+        // Because we want stable velocity per car, we keep it in a member array.
+        // Easiest: create it lazily with same size as Cars.
+        static std::vector<float> vel;
+        if (vel.size() != Cars.size()) {
+            vel.assign(Cars.size(), 0.0f);
+            for (size_t i = 0; i < Cars.size(); i++) vel[i] = Cars[i].speed;
+        }
+
+        if (triggerCollision) {
+            triggerCollision = false;  // reset immediately
+
+            if (Cars.size() >= 2) {
+                // Pick a route to force collision (e.g., route 0)
+                int rid = 0;
+                std::vector<int> idxs;
+                for (int i = 0; i < (int)Cars.size(); i++)
+                    if (Cars[i].routeId == rid)
+                        idxs.push_back(i);
+
+                if (idxs.size() >= 2) {
+                    // sort cars along route
+                    std::sort(idxs.begin(), idxs.end(), [&](int a, int b){
+                        return Cars[a].s < Cars[b].s;
+                    });
+
+                    int rearIdx  = idxs[0];  // rear car
+                    int frontIdx = idxs[1];  // front car
+
+                    // push rear car close to front car
+                    Cars[rearIdx].s = wrapPos(Cars[frontIdx].s - 1.5f, Routes[rid].total);
+
+                    // adjust velocities
+                    vel[frontIdx] += 8.0f; // front car speeds up
+                    vel[rearIdx]  = std::max(0.0f, vel[rearIdx] - 6.0f);
+
+                    // clamp front car speed
+                    vel[frontIdx] = glm::min(vel[frontIdx], Cars[frontIdx].speed + 12.0f);
+                }
+            }
+        }
+
+
         // Group cars by route
         std::vector<std::vector<int>> byRoute(Routes.size());
         for (int i = 0; i < (int)Cars.size(); i++) byRoute[Cars[i].routeId].push_back(i);
@@ -242,13 +288,6 @@ protected:
             // We need per-car current velocity; store it in a parallel array (kept across frames)
         }
 
-        // Because we want stable velocity per car, we keep it in a member array.
-        // Easiest: create it lazily with same size as Cars.
-        static std::vector<float> vel;
-        if (vel.size() != Cars.size()) {
-            vel.assign(Cars.size(), 0.0f);
-            for (size_t i = 0; i < Cars.size(); i++) vel[i] = Cars[i].speed;
-        }
 
         for (int rid = 0; rid < (int)Routes.size(); rid++) {
             auto& idxs = byRoute[rid];
@@ -322,7 +361,7 @@ protected:
         Cars.clear();
         Routes.clear();
         trafficTime = 0.0f;
-
+        const float offset = 3.0f;
         // === LANE-CORRECT loops (the ones you said work) ===
         // Inner is around +/-20, Outer around +/-68
         Route innerCW;
@@ -331,7 +370,10 @@ protected:
         buildRoute(innerCW);
 
         Route innerCCW = innerCW;
-        std::reverse(innerCCW.wp.begin(), innerCCW.wp.end());
+        innerCCW.wp={{-20.0f-offset,0.3f,-20.0f-offset},
+            {-20.0f-offset,0.3f,20.0f+offset},
+            {20.0f+offset,0.3f,20.0f+offset},
+            {20.0f+offset,0.3f,-20.0f-offset}};
         innerCCW.isHorizontalFirst = true;
         buildRoute(innerCCW);
 
@@ -341,7 +383,10 @@ protected:
         buildRoute(outerCW);
 
         Route outerCCW = outerCW;
-        std::reverse(outerCCW.wp.begin(), outerCCW.wp.end());
+        outerCCW.wp={{-68.0f-offset,0.3f,-68.0f-offset},
+            {-68.0f-offset,0.3f,68.0f+offset},
+            {68.0f+offset,0.3f,68.0f+offset},
+            {68.0f+offset,0.3f,-68.0f-offset}};
         outerCCW.isHorizontalFirst = true;
         buildRoute(outerCCW);
 
@@ -504,6 +549,16 @@ protected:
         glm::vec3 m(0.0f), r(0.0f);
         bool fire = false;
         getSixAxis(deltaT, m, r, fire);
+        //accident
+        static bool tWasDown = false;
+        bool tDown = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
+
+        if (tDown && !tWasDown) {
+            triggerCollision = true;  // set flag for updateCars
+        }
+        tWasDown = tDown;
+
+
 
         updateCars(deltaT);
 
