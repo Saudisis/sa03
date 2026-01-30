@@ -61,7 +61,26 @@
 
     { "id": "basket", "model": "assets/models/city/basket.mgcg", "format": "MGCG" },
     { "id": "futbol", "model": "assets/models/city/futbol.mgcg", "format": "MGCG" },
-    { "id": "tenis", "model": "assets/models/city/tenis.mgcg", "format": "MGCG" }
+    { "id": "tenis", "model": "assets/models/city/tenis.mgcg", "format": "MGCG" },
+
+    { "id": "aid_truck", "model": "assets/models/transport/aid_truck.mgcg", "format": "MGCG" },
+    { "id": "ambulance", "model": "assets/models/transport/ambulance.mgcg", "format": "MGCG" },
+    { "id": "black_car", "model": "assets/models/transport/black_car.mgcg", "format": "MGCG" },
+    { "id": "blue_jeep", "model": "assets/models/transport/blue_jeep.mgcg", "format": "MGCG" },
+    { "id": "croll_car", "model": "assets/models/transport/croll_car.mgcg", "format": "MGCG" },
+    { "id": "fire_truck", "model": "assets/models/transport/fire_truck.mgcg", "format": "MGCG" },
+    { "id": "green_jeep", "model": "assets/models/transport/green_jeep.mgcg", "format": "MGCG" },
+    { "id": "limo", "model": "assets/models/transport/limo.mgcg", "format": "MGCG" },
+    { "id": "monst_car", "model": "assets/models/transport/monst_car.mgcg", "format": "MGCG" },
+    { "id": "old_cyan", "model": "assets/models/transport/old_cyan.mgcg", "format": "MGCG" },
+    { "id": "orange_van", "model": "assets/models/transport/orange_van.mgcg", "format": "MGCG" },
+    { "id": "police_car", "model": "assets/models/transport/police_car.mgcg", "format": "MGCG" },
+    { "id": "red_car", "model": "assets/models/transport/red_car.mgcg", "format": "MGCG" },
+    { "id": "RV_van", "model": "assets/models/transport/RV_van.mgcg", "format": "MGCG" },
+    { "id": "school_bus", "model": "assets/models/transport/school_bus.mgcg", "format": "MGCG" },
+    { "id": "tall_car", "model": "assets/models/transport/tall_car.mgcg", "format": "MGCG" },
+    { "id": "taxi", "model": "assets/models/transport/taxi.mgcg", "format": "MGCG" },
+    { "id": "white_conv", "model": "assets/models/transport/white_conv.mgcg", "format": "MGCG" }
   ],
 
   "textures": [
@@ -566,7 +585,32 @@
 
       ],
       "rotY": 90
+    },
+
+
+
+    {
+      "id": "cars_inner_lane",
+      "models": ["taxi","black_car","red_car","blue_jeep","green_jeep","old_cyan","white_conv","orange_van","tall_car","croll_car"],
+      "texture": "tCity",
+      "start": [-12,0.3,-20],
+      "dir": [1,0,0],
+      "count": 6,
+      "step": 8,
+      "rotY": 90
+    },
+    {
+      "id": "cars_outer_lane",
+      "models": ["police_car","ambulance","fire_truck","aid_truck","school_bus","RV_van","limo","monst_car","orange_van","white_conv"],
+      "texture": "tCity",
+      "start": [-56,0.3,-68],
+      "dir": [1,0,0],
+      "count": 8,
+      "step": 16,
+      "rotY": 90
     }
+
+
 
 
   ]
