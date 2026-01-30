@@ -98,25 +98,7 @@ elseif(WIN32)
 
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 
-    file(GLOB GLSL_SOURCE_FILES "${CMAKE_SOURCE_DIR}/shaders/*.vert" "${CMAKE_SOURCE_DIR}/shaders/*.frag")
-
-    set(SPIRV_BINARY_FILES "")
-    foreach(GLSL ${GLSL_SOURCE_FILES})
-        get_filename_component(FILE_NAME ${GLSL} NAME_WE)
-        set(SPV_FILE ${CMAKE_BINARY_DIR}/shaders/${FILE_NAME}.spv)
-
-        add_custom_command(
-                OUTPUT ${SPV_FILE}
-                COMMAND glslangValidator -V ${GLSL} -o ${SPV_FILE}
-                DEPENDS ${GLSL}
-                COMMENT "Compiling shader: ${GLSL}"
-        )
-        list(APPEND SPIRV_BINARY_FILES ${SPV_FILE})
-    endforeach()
-
-    add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
-    add_dependencies(${PROJECT_NAME} Shaders)
-
+    # Copy precompiled SPIR-V shaders
     file(GLOB SHADER_SPV_FILES "${CMAKE_SOURCE_DIR}/shaders/*.spv")
     file(COPY ${SHADER_SPV_FILES} DESTINATION ${CMAKE_BINARY_DIR}/shaders)
     file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)

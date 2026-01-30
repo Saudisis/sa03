@@ -633,6 +633,131 @@ protected:
         GlobalUniformBufferObject guboLocal = gubo;
         UniformBufferObject ubo{};
 
+        // ===== UPDATE ANIMATION TIME FOR ALL INSTANCES =====
+        std::unordered_set<int> updatedSkinnedModels;
+        auto sampleTrack = [](const AnimationTrack& track, float time) -> AnimationKeyframe {
+            AnimationKeyframe out{};
+            out.translation = glm::vec3(0.0f);
+            out.rotation = glm::quat(1, 0, 0, 0);
+            out.scale = glm::vec3(1.0f);
+
+            if (track.keyframes.empty()) return out;
+
+            int idx0 = 0;
+            for (int i = 0; i < (int)track.keyframes.size() - 1; i++) {
+                if (track.keyframes[i].time <= time && time <= track.keyframes[i + 1].time) {
+                    idx0 = i;
+                    break;
+                }
+            }
+            const auto& kf0 = track.keyframes[idx0];
+            const auto& kf1 = track.keyframes[std::min(idx0 + 1, (int)track.keyframes.size() - 1)];
+            float t = 0.0f;
+            if (kf1.time > kf0.time) {
+                t = (time - kf0.time) / (kf1.time - kf0.time);
+            }
+            out.translation = glm::mix(kf0.translation, kf1.translation, t);
+            out.rotation = glm::slerp(kf0.rotation, kf1.rotation, t);
+            out.scale = glm::mix(kf0.scale, kf1.scale, t);
+            return out;
+        };
+
+        for (int i = 0; i < SC.InstanceCount; i++) {
+            // Check if this instance has an animated model
+            int modelIdx = SC.I[i].Mid;
+            if (modelIdx >= 0 && modelIdx < SC.ModelCount && 
+                !SC.M[modelIdx]->animations.empty()) {
+				
+                // Increment animation time
+                SC.I[i].animTime += deltaT;
+				
+                // Loop animation
+                float duration = SC.M[modelIdx]->animations[0].duration;
+                if (SC.I[i].animTime > duration) {
+                    SC.I[i].animTime = std::fmod(SC.I[i].animTime, duration);
+                }
+
+                // CPU skinning update (only once per model per frame)
+                Model* model = SC.M[modelIdx];
+                if (model->hasSkinning && !updatedSkinnedModels.count(modelIdx)) {
+                    const auto& clip = model->animations[0];
+                    const int nodeCount = (int)model->nodeParents.size();
+                    if (nodeCount > 0 &&
+                        model->nodeBaseTranslation.size() == (size_t)nodeCount &&
+                        model->nodeBaseRotation.size() == (size_t)nodeCount &&
+                        model->nodeBaseScale.size() == (size_t)nodeCount) {
+
+                        std::vector<glm::vec3> t = model->nodeBaseTranslation;
+                        std::vector<glm::quat> r = model->nodeBaseRotation;
+                        std::vector<glm::vec3> s = model->nodeBaseScale;
+
+                        for (const auto& track : clip.tracks) {
+                            int node = track.jointIndex;
+                            if (node < 0 || node >= nodeCount) continue;
+                            AnimationKeyframe kf = sampleTrack(track, SC.I[i].animTime);
+                            switch (track.path) {
+                                case AnimationTrack::Path::Translation:
+                                    t[node] = kf.translation;
+                                    break;
+                                case AnimationTrack::Path::Rotation:
+                                    r[node] = kf.rotation;
+                                    break;
+                                case AnimationTrack::Path::Scale:
+                                    s[node] = kf.scale;
+                                    break;
+                            }
+                        }
+
+                        std::vector<glm::mat4> local(nodeCount);
+                        for (int n = 0; n < nodeCount; n++) {
+                            glm::mat4 M(1.0f);
+                            M = glm::translate(M, t[n]);
+                            M = M * glm::mat4_cast(r[n]);
+                            M = glm::scale(M, s[n]);
+                            local[n] = M;
+                        }
+
+                        std::vector<glm::mat4> global(nodeCount, glm::mat4(1.0f));
+                        std::vector<char> computed(nodeCount, 0);
+                        auto computeGlobal = [&](auto&& self, int idx) -> glm::mat4 {
+                            if (computed[idx]) return global[idx];
+                            int parent = model->nodeParents[idx];
+                            if (parent >= 0 && parent < nodeCount) {
+                                global[idx] = self(self, parent) * local[idx];
+                            } else {
+                                global[idx] = local[idx];
+                            }
+                            computed[idx] = 1;
+                            return global[idx];
+                        };
+                        for (int n = 0; n < nodeCount; n++) {
+                            computeGlobal(computeGlobal, n);
+                        }
+
+                        const size_t jointCount = model->skinData.jointIndices.size();
+                        std::vector<glm::mat4> jointMatrices(jointCount, glm::mat4(1.0f));
+                        for (size_t j = 0; j < jointCount; j++) {
+                            int node = model->skinData.jointIndices[j];
+                            if (node < 0 || node >= nodeCount) continue;
+                            if (j < model->skinData.inverseBindMatrices.size()) {
+                                jointMatrices[j] = global[node] * model->skinData.inverseBindMatrices[j];
+                            }
+                        }
+
+                        model->updateSkinnedVertices(jointMatrices);
+                        updatedSkinnedModels.insert(modelIdx);
+                    }
+                }
+
+                static bool logged = false;
+                if (!logged) {
+                    std::cout << "[Animation] Model " << modelIdx << " animation time: " 
+                              << SC.I[i].animTime << "s / " << duration << "s\n";
+                    logged = true;
+                }
+            }
+        }
+
         for (int i = 0; i < SC.InstanceCount; i++) {
             ubo.mMat   = SC.I[i].Wm;
             ubo.mvpMat = VP * ubo.mMat;

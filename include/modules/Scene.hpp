@@ -8,6 +8,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include "../json.hpp"
 #include "UBO.hpp"
@@ -20,6 +21,7 @@ typedef struct {
     int Mid;        // Model index
     int Tid;        // Texture index
     glm::mat4 Wm;   // World matrix (compatible with your loader convention)
+    float animTime; // Animation time for this instance (0..duration)
 } Instance;
 
 // =====================================================
@@ -88,6 +90,42 @@ private:
     static void PrintIds(const std::unordered_map<std::string, int> &mp, const char *title) {
         std::cout << title << ":\n";
         for (auto &kv : mp) std::cout << "  " << kv.first << " -> " << kv.second << "\n";
+    }
+
+    // Interpolate animation keyframe
+    static AnimationKeyframe SampleAnimationTrack(const AnimationTrack& track, float time) {
+        AnimationKeyframe out{};
+        out.translation = glm::vec3(0.0f);
+        out.rotation = glm::quat(1, 0, 0, 0);
+        out.scale = glm::vec3(1.0f);
+
+        if (track.keyframes.empty()) {
+            return out;
+        }
+
+        // Find the two keyframes to interpolate between
+        int idx0 = 0;
+        for (int i = 0; i < (int)track.keyframes.size() - 1; i++) {
+            if (track.keyframes[i].time <= time && time <= track.keyframes[i + 1].time) {
+                idx0 = i;
+                break;
+            }
+        }
+
+        const auto& kf0 = track.keyframes[idx0];
+        const auto& kf1 = track.keyframes[std::min(idx0 + 1, (int)track.keyframes.size() - 1)];
+
+        float t = 0.0f;
+        if (kf1.time > kf0.time) {
+            t = (time - kf0.time) / (kf1.time - kf0.time);
+        }
+
+        // Interpolate components
+        out.translation = glm::mix(kf0.translation, kf1.translation, t);
+        out.rotation = glm::slerp(kf0.rotation, kf1.rotation, t);
+        out.scale = glm::mix(kf0.scale, kf1.scale, t);
+
+        return out;
     }
 
 public:
@@ -162,6 +200,7 @@ public:
         for (int i = 0; i < (int)is.size(); i++) {
             Instance inst;
             inst.id  = new std::string(is[i]["id"].get<std::string>());
+            inst.animTime = 0.0f;
 
             std::string modelId = is[i]["model"].get<std::string>();
             std::string texId   = is[i]["texture"].get<std::string>();
@@ -219,6 +258,7 @@ public:
 
                     Instance inst;
                     inst.id = new std::string(baseId + "_" + std::to_string(idx));
+                    inst.animTime = 0.0f;
                     inst.Mid = MeshIds[modelId];
                     inst.Tid = TextureIds[texId];
 

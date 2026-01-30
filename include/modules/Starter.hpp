@@ -224,6 +224,35 @@ struct VertexDescriptor {
 
 enum ModelType {OBJ, GLTF, MGCG};
 
+// Animation keyframe structure
+struct AnimationKeyframe {
+	float time;
+	glm::vec3 translation;
+	glm::quat rotation;
+	glm::vec3 scale;
+};
+
+// Animation track for a single joint
+struct AnimationTrack {
+	std::vector<AnimationKeyframe> keyframes;
+	int jointIndex;
+	enum class Path { Translation, Rotation, Scale } path;
+};
+
+// Complete animation clip
+struct AnimationClip {
+	std::string name;
+	std::vector<AnimationTrack> tracks;
+	float duration;
+};
+
+// Skin data for skeletal animation
+struct SkinData {
+	std::vector<glm::mat4> inverseBindMatrices;
+	std::vector<int> jointIndices;
+	int rootBoneIndex;
+};
+
 class Model {
 	BaseProject *BP;
 	
@@ -236,10 +265,30 @@ class Model {
 	public:
 	std::vector<unsigned char> vertices{};
 	std::vector<uint32_t> indices{};
+	
+		// Base (bind pose) vertex data for CPU skinning
+		std::vector<glm::vec3> basePositions;
+		std::vector<glm::vec3> baseNormals;
+		std::vector<glm::uvec4> jointIndices;
+		std::vector<glm::vec4> jointWeights;
+
+		// Node hierarchy and bind transforms (glTF nodes)
+		std::vector<int> nodeParents;
+		std::vector<glm::vec3> nodeBaseTranslation;
+		std::vector<glm::quat> nodeBaseRotation;
+		std::vector<glm::vec3> nodeBaseScale;
+	
+	// Animation and skinning data
+	std::vector<AnimationClip> animations;
+	SkinData skinData;
+	bool hasSkinning = false;
+	
 	void loadModelOBJ(std::string file);
 	void loadModelGLTF(std::string file, bool encoded);
 	void createIndexBuffer();
 	void createVertexBuffer();
+	void updateVertexBuffer();
+	void updateSkinnedVertices(const std::vector<glm::mat4>& jointMatrices);
 
 	void init(BaseProject *bp, VertexDescriptor *VD, std::string file, ModelType MT);
 	void initMesh(BaseProject *bp, VertexDescriptor *VD);
@@ -2572,6 +2621,40 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 		}
 	}
 
+	// Cache node hierarchy and bind transforms
+	const int nodeCount = (int)model.nodes.size();
+	nodeParents.assign(nodeCount, -1);
+	nodeBaseTranslation.assign(nodeCount, glm::vec3(0.0f));
+	nodeBaseRotation.assign(nodeCount, glm::quat(1, 0, 0, 0));
+	nodeBaseScale.assign(nodeCount, glm::vec3(1.0f));
+
+	for (int i = 0; i < nodeCount; i++) {
+		const auto& n = model.nodes[i];
+		if (n.translation.size() == 3) {
+			nodeBaseTranslation[i] = glm::vec3(
+				n.translation[0], n.translation[1], n.translation[2]
+			);
+		}
+		if (n.rotation.size() == 4) {
+			nodeBaseRotation[i] = glm::quat(
+				(float)n.rotation[3],
+				(float)n.rotation[0],
+				(float)n.rotation[1],
+				(float)n.rotation[2]
+			);
+		}
+		if (n.scale.size() == 3) {
+			nodeBaseScale[i] = glm::vec3(
+				n.scale[0], n.scale[1], n.scale[2]
+			);
+		}
+		for (int child : n.children) {
+			if (child >= 0 && child < nodeCount) nodeParents[child] = i;
+		}
+	}
+
+	const bool gltfHasSkin = !model.skins.empty();
+
 	for (const auto& mesh :  model.meshes) {
 		std::cout << "Primitives: " << mesh.primitives.size() << "\n";
 		for (const auto& primitive :  mesh.primitives) {
@@ -2583,16 +2666,23 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 			const float *bufferNormals = nullptr;
 			const float *bufferTangents = nullptr;
 			const float *bufferTexCoords = nullptr;
+			const unsigned char *bufferJointsU8 = nullptr;
+			const unsigned short *bufferJointsU16 = nullptr;
+			const float *bufferWeights = nullptr;
 			
 			bool meshHasPos = false;
 			bool meshHasNorm = false;
 			bool meshHasTan = false;
 			bool meshHasUV = false;
+			bool meshHasJoints = false;
+			bool meshHasWeights = false;
 			
 			int cntPos = 0;
 			int cntNorm = 0;
 			int cntTan = 0;
 			int cntUV = 0;
+			int cntJoints = 0;
+			int cntWeights = 0;
 			int cntTot = 0;
 			
 			auto pIt = primitive.attributes.find("POSITION");
@@ -2651,6 +2741,32 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 				}
 			}
 
+			auto jIt = primitive.attributes.find("JOINTS_0");
+			if(jIt != primitive.attributes.end()) {
+				const tinygltf::Accessor &jAccessor = model.accessors[jIt->second];
+				const tinygltf::BufferView &jView = model.bufferViews[jAccessor.bufferView];
+				const auto &buf = model.buffers[jView.buffer].data;
+				const unsigned char* base = &buf[jAccessor.byteOffset + jView.byteOffset];
+				if (jAccessor.componentType == TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT) {
+					bufferJointsU16 = reinterpret_cast<const unsigned short*>(base);
+				} else if (jAccessor.componentType == TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE) {
+					bufferJointsU8 = reinterpret_cast<const unsigned char*>(base);
+				}
+				meshHasJoints = true;
+				cntJoints = jAccessor.count;
+				if(cntJoints > cntTot) cntTot = cntJoints;
+			}
+
+			auto wIt = primitive.attributes.find("WEIGHTS_0");
+			if(wIt != primitive.attributes.end()) {
+				const tinygltf::Accessor &wAccessor = model.accessors[wIt->second];
+				const tinygltf::BufferView &wView = model.bufferViews[wAccessor.bufferView];
+				bufferWeights = reinterpret_cast<const float *>(&(model.buffers[wView.buffer].data[wAccessor.byteOffset + wView.byteOffset]));
+				meshHasWeights = true;
+				cntWeights = wAccessor.count;
+				if(cntWeights > cntTot) cntTot = cntWeights;
+			}
+
 			int mainStride = VD->Bindings[0].stride;
 //std::cout << "making vertex array. Stride:" << mainStride << "\n";
 			for(int i = 0; i < cntTot; i++) {
@@ -2669,6 +2785,9 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 //std::cout << "at: " << o << "\n";
 					*o = pos;
 //std::cout << "Copied: " << o->x << "\n";
+					if (gltfHasSkin && meshHasJoints && meshHasWeights) {
+						basePositions.push_back(pos);
+					}
 				}
 				if((i < cntNorm) && meshHasNorm && VD->Normal.hasIt) {
 					glm::vec3 normal = {
@@ -2679,6 +2798,9 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 //std::cout << "Nor: " <<	VD->Normal.offset << "\n";
 					glm::vec3 *o = (glm::vec3 *)((char*)(&vertex[0]) + VD->Normal.offset);
 					*o = normal;
+					if (gltfHasSkin && meshHasJoints && meshHasWeights) {
+						baseNormals.push_back(normal);
+					}
 				}
 
 				if((i < cntTan) && meshHasTan && VD->Tangent.hasIt) {
@@ -2701,6 +2823,36 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 //std::cout << "UV : " <<	VD->UV.offset << "\n";
 					glm::vec2 *o = (glm::vec2 *)((char*)(&vertex[0]) + VD->UV.offset);
 					*o = texCoord;
+				}
+
+				if (gltfHasSkin && meshHasJoints && meshHasWeights) {
+					glm::uvec4 joints(0);
+					if (bufferJointsU16) {
+						joints = glm::uvec4(
+							bufferJointsU16[4 * i + 0],
+							bufferJointsU16[4 * i + 1],
+							bufferJointsU16[4 * i + 2],
+							bufferJointsU16[4 * i + 3]
+						);
+					} else if (bufferJointsU8) {
+						joints = glm::uvec4(
+							bufferJointsU8[4 * i + 0],
+							bufferJointsU8[4 * i + 1],
+							bufferJointsU8[4 * i + 2],
+							bufferJointsU8[4 * i + 3]
+						);
+					}
+
+					glm::vec4 weights(
+						bufferWeights[4 * i + 0],
+						bufferWeights[4 * i + 1],
+						bufferWeights[4 * i + 2],
+						bufferWeights[4 * i + 3]
+					);
+					float wsum = weights.x + weights.y + weights.z + weights.w;
+					if (wsum > 0.00001f) weights /= wsum;
+					jointIndices.push_back(joints);
+					jointWeights.push_back(weights);
 				}
 
 //std::cout << vertices.size() << "," << vertex.size() << " Inserting\n";
@@ -2738,6 +2890,122 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 
 	std::cout << (encoded ? "[MGCG]" : "[GLTF]") << " Vertices: " << vertices.size()
 			  << "\nIndices: " << indices.size() << "\n";
+
+	// ===== LOAD SKIN DATA (SKELETAL ANIMATION) =====
+	if (!model.skins.empty()) {
+		const auto& skin = model.skins[0];
+		hasSkinning = true;
+
+		// Read inverse bind matrices
+		const auto& ibmAccessor = model.accessors[skin.inverseBindMatrices];
+		const auto& ibmBufferView = model.bufferViews[ibmAccessor.bufferView];
+		const auto& ibmBuffer = model.buffers[ibmBufferView.buffer];
+		const float* ibmData = reinterpret_cast<const float*>(
+			&ibmBuffer.data[ibmAccessor.byteOffset + ibmBufferView.byteOffset]
+		);
+
+		skinData.inverseBindMatrices.resize(ibmAccessor.count);
+		for (int i = 0; i < (int)ibmAccessor.count; i++) {
+			glm::mat4 m;
+			for (int r = 0; r < 4; r++) {
+				for (int c = 0; c < 4; c++) {
+					m[c][r] = ibmData[i * 16 + c * 4 + r];
+				}
+			}
+			skinData.inverseBindMatrices[i] = m;
+		}
+
+		// Store joint indices
+		skinData.jointIndices = skin.joints;
+		std::cout << "[GLTF] Skin loaded with " << skinData.jointIndices.size() 
+				  << " joints\n";
+	}
+
+	// ===== LOAD ANIMATIONS =====
+	if (!model.animations.empty()) {
+		const auto& srcAnim = model.animations[0];
+		AnimationClip clip;
+		clip.name = srcAnim.name.empty() ? "default" : srcAnim.name;
+		clip.duration = 0.0f;
+
+		// Build a map from node index to track index
+		std::unordered_map<int, int> nodeToTrack;
+		clip.tracks.resize(srcAnim.channels.size());
+
+		for (int ch = 0; ch < (int)srcAnim.channels.size(); ch++) {
+			const auto& channel = srcAnim.channels[ch];
+			const auto& sampler = srcAnim.samplers[channel.sampler];
+
+			AnimationTrack& track = clip.tracks[ch];
+			track.jointIndex = channel.target_node;
+			if (channel.target_path == "translation") {
+				track.path = AnimationTrack::Path::Translation;
+			} else if (channel.target_path == "rotation") {
+				track.path = AnimationTrack::Path::Rotation;
+			} else {
+				track.path = AnimationTrack::Path::Scale;
+			}
+
+			// Read time input
+			const auto& timeAccessor = model.accessors[sampler.input];
+			const auto& timeBufferView = model.bufferViews[timeAccessor.bufferView];
+			const auto& timeBuffer = model.buffers[timeBufferView.buffer];
+			const float* timeData = reinterpret_cast<const float*>(
+				&timeBuffer.data[timeAccessor.byteOffset + timeBufferView.byteOffset]
+			);
+
+			int timeCount = timeAccessor.count;
+			if (timeCount > 0) {
+				float maxTime = timeData[timeCount - 1];
+				if (maxTime > clip.duration) clip.duration = maxTime;
+			}
+
+			// Read output values
+			const auto& outAccessor = model.accessors[sampler.output];
+			const auto& outBufferView = model.bufferViews[outAccessor.bufferView];
+			const auto& outBuffer = model.buffers[outBufferView.buffer];
+			const float* outData = reinterpret_cast<const float*>(
+				&outBuffer.data[outAccessor.byteOffset + outBufferView.byteOffset]
+			);
+
+			// Parse keyframes based on target path
+			track.keyframes.resize(timeCount);
+			for (int k = 0; k < timeCount; k++) {
+				track.keyframes[k].time = timeData[k];
+
+				if (channel.target_path == "translation") {
+					track.keyframes[k].translation = glm::vec3(
+						outData[k * 3 + 0],
+						outData[k * 3 + 1],
+						outData[k * 3 + 2]
+					);
+					track.keyframes[k].rotation = glm::quat(1, 0, 0, 0);
+					track.keyframes[k].scale = glm::vec3(1.0f);
+				} else if (channel.target_path == "rotation") {
+					track.keyframes[k].rotation = glm::quat(
+						outData[k * 4 + 3],  // w
+						outData[k * 4 + 0],  // x
+						outData[k * 4 + 1],  // y
+						outData[k * 4 + 2]   // z
+					);
+					track.keyframes[k].translation = glm::vec3(0.0f);
+					track.keyframes[k].scale = glm::vec3(1.0f);
+				} else if (channel.target_path == "scale") {
+					track.keyframes[k].scale = glm::vec3(
+						outData[k * 3 + 0],
+						outData[k * 3 + 1],
+						outData[k * 3 + 2]
+					);
+					track.keyframes[k].translation = glm::vec3(0.0f);
+					track.keyframes[k].rotation = glm::quat(1, 0, 0, 0);
+				}
+			}
+		}
+
+		animations.push_back(clip);
+		std::cout << "[GLTF] Animation loaded: " << clip.name << ", duration " 
+				  << clip.duration << "s, " << clip.tracks.size() << " tracks\n";
+	}
 }
 
 void Model::createVertexBuffer() {
@@ -2753,6 +3021,53 @@ void Model::createVertexBuffer() {
 	vkMapMemory(BP->device, vertexBufferMemory, 0, bufferSize, 0, &data);
 	memcpy(data, vertices.data(), (size_t) bufferSize);
 	vkUnmapMemory(BP->device, vertexBufferMemory);			
+}
+
+void Model::updateVertexBuffer() {
+	VkDeviceSize bufferSize = vertices.size();
+	void* data;
+	vkMapMemory(BP->device, vertexBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, vertices.data(), (size_t)bufferSize);
+	vkUnmapMemory(BP->device, vertexBufferMemory);
+}
+
+void Model::updateSkinnedVertices(const std::vector<glm::mat4>& jointMatrices) {
+	if (!hasSkinning) return;
+	if (basePositions.empty() || jointIndices.empty() || jointWeights.empty()) return;
+
+	const int mainStride = VD->Bindings[0].stride;
+	const size_t vcount = basePositions.size();
+	const bool hasNormals = (baseNormals.size() == vcount);
+	for (size_t i = 0; i < vcount; i++) {
+		glm::vec4 pos(0.0f);
+		glm::vec3 nrm(0.0f);
+
+		const glm::uvec4& j = jointIndices[i];
+		const glm::vec4& w = jointWeights[i];
+
+		for (int k = 0; k < 4; k++) {
+			const uint32_t ji = (k == 0 ? j.x : k == 1 ? j.y : k == 2 ? j.z : j.w);
+			const float wt = (k == 0 ? w.x : k == 1 ? w.y : k == 2 ? w.z : w.w);
+			if (wt <= 0.0f || ji >= jointMatrices.size()) continue;
+			const glm::mat4& M = jointMatrices[ji];
+			pos += wt * (M * glm::vec4(basePositions[i], 1.0f));
+			if (hasNormals) {
+				nrm += wt * glm::mat3(M) * baseNormals[i];
+			}
+		}
+
+		unsigned char* vptr = &vertices[i * mainStride];
+		if (VD->Position.hasIt) {
+			glm::vec3* o = (glm::vec3 *)(vptr + VD->Position.offset);
+			*o = glm::vec3(pos);
+		}
+		if (VD->Normal.hasIt && hasNormals) {
+			glm::vec3* o = (glm::vec3 *)(vptr + VD->Normal.offset);
+			*o = glm::normalize(nrm);
+		}
+	}
+
+	updateVertexBuffer();
 }
 
 void Model::createIndexBuffer() {
