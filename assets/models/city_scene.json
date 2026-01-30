@@ -80,12 +80,14 @@
     { "id": "school_bus", "model": "assets/models/transport/school_bus.mgcg", "format": "MGCG" },
     { "id": "tall_car", "model": "assets/models/transport/tall_car.mgcg", "format": "MGCG" },
     { "id": "taxi", "model": "assets/models/transport/taxi.mgcg", "format": "MGCG" },
-    { "id": "white_conv", "model": "assets/models/transport/white_conv.mgcg", "format": "MGCG" }
+    { "id": "white_conv", "model": "assets/models/transport/white_conv.mgcg", "format": "MGCG" },
+    { "id": "uomo", "model": "assets/models/people/uomo.gltf", "format": "GLTF" }
   ],
 
   "textures": [
     { "id": "tRoad", "texture": "assets/textures/textures.png" },
-    { "id": "tCity", "texture": "assets/textures/textures.png" }
+    { "id": "tCity", "texture": "assets/textures/textures.png" },
+    { "id": "tUomo", "texture": "assets/textures/people/uomo/Ch01_1001_Diffuse.png" }
   ],
 
   "instances": [
@@ -229,6 +231,15 @@
       "model": "chair",
       "texture": "tCity",
       "points": [[2,0.3,-8], [6,0.3,-8], [10,0.3,-8]]
+    },
+
+    {
+      "id": "uomo_demo",
+      "model": "uomo",
+      "texture": "tUomo",
+      "points": [[-70,0.3,-70]],
+      "rotY": 0,
+      "scale": [1.0, 1.0, 1.0]
     },
 
 
