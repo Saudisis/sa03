@@ -234,19 +234,19 @@
     },
 
     {
-      "id": "uomo_demo",
+      "id": "pedestrians_center",
       "model": "uomo",
       "texture": "tUomo",
-      "points": [[-70,0.3,-70]],
+      "points": [[-17,0.3,-16]],
       "rotY": 0,
       "scale": [1.0, 1.0, 1.0]
     },
 
     {
-      "id": "pedestrians_center_nw",
+      "id": "pedestrians_center_up",
       "model": "uomo",
       "texture": "tUomo",
-      "points": [[-17,0.3,-16]],
+      "points": [[0,0.3,-55]],
       "rotY": 0,
       "scale": [1.0, 1.0, 1.0]
     },

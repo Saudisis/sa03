@@ -92,7 +92,7 @@ protected:
 
     std::vector<CarState> Cars;
     std::vector<Route> Routes;
-    PedestrianState Pedestrian;
+    std::vector<PedestrianState> Pedestrians;
 
     float trafficTime = 0.0f;
     float lightPeriod = 10.0f;   // seconds per phase
@@ -369,21 +369,23 @@ protected:
     }
 
     void updatePedestrian(float dt) {
-        if (Pedestrian.instId < 0 || Pedestrian.walkRoute.total <= 0.0001f) return;
+        for (auto& ped : Pedestrians) {
+            if (ped.instId < 0 || ped.walkRoute.total <= 0.0001f) continue;
 
-        // Advance along the walking route
-        Pedestrian.s = wrapPos(Pedestrian.s + Pedestrian.speed * dt, Pedestrian.walkRoute.total);
+            // Advance along the walking route
+            ped.s = wrapPos(ped.s + ped.speed * dt, ped.walkRoute.total);
 
-        // Get position and yaw on the route
-        glm::vec3 pos = posOnRoute(Pedestrian.walkRoute, Pedestrian.s);
-        float yaw = yawAlongRoute(Pedestrian.walkRoute, Pedestrian.s);
+            // Get position and yaw on the route
+            glm::vec3 pos = posOnRoute(ped.walkRoute, ped.s);
+            float yaw = yawAlongRoute(ped.walkRoute, ped.s);
 
-        // Update instance world matrix: position + rotation
-        glm::mat4 M(1.0f);
-        M = glm::translate(M, pos);
-        M = glm::rotate(M, yaw, glm::vec3(0, 1, 0));
-        
-        SC.I[Pedestrian.instId].Wm = M;
+            // Update instance world matrix: position + rotation
+            glm::mat4 M(1.0f);
+            M = glm::translate(M, pos);
+            M = glm::rotate(M, yaw, glm::vec3(0, 1, 0));
+            
+            SC.I[ped.instId].Wm = M;
+        }
     }
 
     void initTraffic() {
@@ -477,43 +479,49 @@ protected:
     }
 
     void initPedestrian() {
-        Pedestrian.instId = -1;
+        Pedestrians.clear();
         
-        // Find pedestrian instance by looking for "pedestrians" in its ID
+        // Find all pedestrian instances by looking for "pedestrians" in their IDs
         for (int i = 0; i < SC.InstanceCount; i++) {
             if (SC.I[i].id != nullptr) {
                 std::string instId = *SC.I[i].id;
                 if (instId.find("pedestrians") != std::string::npos) {
-                    Pedestrian.instId = i;
-                    break;
+                    PedestrianState ped;
+                    ped.instId = i;
+                    ped.speed = 1.8f;
+                    ped.s = 0.0f;
+                    
+                    // Define route based on instance ID
+                    if (instId.find("center_up") != std::string::npos) {
+                        // Center up block (north area)
+                        ped.walkRoute.wp = {
+                            glm::vec3(-17.0f, 0.3f, -65.0f),   // NW corner
+                            glm::vec3( 17.0f, 0.3f, -65.0f),   // NE corner
+                            glm::vec3( 17.0f, 0.3f, -38.0f),   // SE corner
+                            glm::vec3(-17.0f, 0.3f, -38.0f)    // SW corner
+                        };
+                    } else {
+                        // Default: center block (main area)
+                        ped.walkRoute.wp = {
+                            glm::vec3(-17.0f, 0.3f, -17.0f),   // NW corner
+                            glm::vec3( 17.0f, 0.3f, -17.0f),   // NE corner
+                            glm::vec3( 17.0f, 0.3f,  17.0f),   // SE corner
+                            glm::vec3(-17.0f, 0.3f,  17.0f)    // SW corner
+                        };
+                    }
+                    
+                    buildRoute(ped.walkRoute);
+                    Pedestrians.push_back(ped);
+                    
+                    std::cout << "[Pedestrian] Initialized \"" << instId << "\" at instance " 
+                              << ped.instId << " with route length " << ped.walkRoute.total << " units\n";
                 }
             }
         }
-
-        if (Pedestrian.instId == -1) {
-            std::cout << "[Pedestrian] Warning: No pedestrian instance found (looking for 'pedestrians' ID)\n";
-            return;
+        
+        if (Pedestrians.empty()) {
+            std::cout << "[Pedestrian] Warning: No pedestrian instances found\n";
         }
-
-        // Define rectangular walking route around the central andén
-        // Route is a clockwise loop that keeps the pedestrian on the sidewalk
-        // Andén bounds: ±17 on X and Z axes
-        
-        // Route waypoints (walking around the andén block):
-        // NW corner -> NE corner -> SE corner -> SW corner -> back to NW
-        Pedestrian.walkRoute.wp = {
-            glm::vec3(-17.0f, 0.3f, -17.0f),   // NW corner
-            glm::vec3( 17.0f, 0.3f, -17.0f),   // NE corner (along north edge)
-            glm::vec3( 17.0f, 0.3f,  17.0f),   // SE corner (along east edge)
-            glm::vec3(-17.0f, 0.3f,  17.0f)    // SW corner (along south edge)
-        };
-        
-        buildRoute(Pedestrian.walkRoute);
-        Pedestrian.s = 0.0f;
-        Pedestrian.speed = 1.8f;  // ~1.8 m/s walking speed
-        
-        std::cout << "[Pedestrian] Initialized at instance " << Pedestrian.instId 
-                  << " with route length " << Pedestrian.walkRoute.total << " units\n";
     }
 
     // -------------------------------
