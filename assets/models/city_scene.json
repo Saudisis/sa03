@@ -242,6 +242,15 @@
       "scale": [1.0, 1.0, 1.0]
     },
 
+    {
+      "id": "pedestrians_center_nw",
+      "model": "uomo",
+      "texture": "tUomo",
+      "points": [[-17,0.3,-16]],
+      "rotY": 0,
+      "scale": [1.0, 1.0, 1.0]
+    },
+
 
     {
       "id": "center_down_front",
