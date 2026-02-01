@@ -2768,6 +2768,7 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 			}
 
 			int mainStride = VD->Bindings[0].stride;
+			const uint32_t vertexOffset = static_cast<uint32_t>(vertices.size() / mainStride);
 //std::cout << "making vertex array. Stride:" << mainStride << "\n";
 			for(int i = 0; i < cntTot; i++) {
 				std::vector<unsigned char> vertex(mainStride, 0);
@@ -2869,7 +2870,7 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 					{
 						const uint16_t *bufferIndex = reinterpret_cast<const uint16_t *>(&(buffer.data[accessor.byteOffset + bufferView.byteOffset]));
 						for(int i = 0; i < accessor.count; i++) {
-							indices.push_back(bufferIndex[i]);
+							indices.push_back(static_cast<uint32_t>(bufferIndex[i]) + vertexOffset);
 						}
 					}
 					break;
@@ -2877,7 +2878,7 @@ void Model::loadModelGLTF(std::string file, bool encoded) {
 					{
 						const uint32_t *bufferIndex = reinterpret_cast<const uint32_t *>(&(buffer.data[accessor.byteOffset + bufferView.byteOffset]));
 						for(int i = 0; i < accessor.count; i++) {
-							indices.push_back(bufferIndex[i]);
+							indices.push_back(bufferIndex[i] + vertexOffset);
 						}
 					}
 					break;
