@@ -497,8 +497,16 @@ protected:
                         ped.walkRoute.wp = {
                             glm::vec3(-17.0f, 0.3f, -65.0f),   // NW corner
                             glm::vec3( 17.0f, 0.3f, -65.0f),   // NE corner
-                            glm::vec3( 17.0f, 0.3f, -38.0f),   // SE corner
-                            glm::vec3(-17.0f, 0.3f, -38.0f)    // SW corner
+                            glm::vec3( 17.0f, 0.3f, -32.0f),   // SE corner
+                            glm::vec3(-17.0f, 0.3f, -32.0f)    // SW corner
+                        };
+                    } else if (instId.find("center_left") != std::string::npos) {
+                        // Center left block (west area)
+                        ped.walkRoute.wp = {
+                            glm::vec3(-65.0f, 0.3f, -17.0f),   // NW corner
+                            glm::vec3(-32.0f, 0.3f, -17.0f),   // NE corner
+                            glm::vec3(-32.0f, 0.3f,  17.0f),   // SE corner
+                            glm::vec3(-65.0f, 0.3f,  17.0f)    // SW corner
                         };
                     } else {
                         // Default: center block (main area)
