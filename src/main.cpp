@@ -57,7 +57,6 @@ protected:
     float flySpeed   = 140.0f;
 
     // collision control
-    bool triggerCollision = false;  // set when T is pressed
     bool collisionMode = false; // optional toggle
     float hitDistance = 1.2f;   // how close cars need to be to "hit"
     // =========================
@@ -186,7 +185,7 @@ protected:
     void updateCars(float dt) {
         if (Cars.empty()) return;
         trafficTime += dt;
-
+        int colroute = 1;
         // Because we want stable velocity per car, we keep it in a member array.
         // Easiest: create it lazily with same size as Cars.
         static std::vector<float> vel;
@@ -195,110 +194,9 @@ protected:
             for (size_t i = 0; i < Cars.size(); i++) vel[i] = Cars[i].speed;
         }
 
-        if (triggerCollision) {
-            triggerCollision = false;  // reset immediately
-
-            if (Cars.size() >= 2) {
-                // Pick a route to force collision (e.g., route 0)
-                int rid = 0;
-                std::vector<int> idxs;
-                for (int i = 0; i < (int)Cars.size(); i++)
-                    if (Cars[i].routeId == rid)
-                        idxs.push_back(i);
-
-                if (idxs.size() >= 2) {
-                    // sort cars along route
-                    std::sort(idxs.begin(), idxs.end(), [&](int a, int b){
-                        return Cars[a].s < Cars[b].s;
-                    });
-
-                    int rearIdx  = idxs[0];  // rear car
-                    int frontIdx = idxs[1];  // front car
-
-                    // push rear car close to front car
-                    Cars[rearIdx].s = wrapPos(Cars[frontIdx].s - 1.5f, Routes[rid].total);
-
-                    // adjust velocities
-                    vel[frontIdx] += 8.0f; // front car speeds up
-                    vel[rearIdx]  = std::max(0.0f, vel[rearIdx] - 6.0f);
-
-                    // clamp front car speed
-                    vel[frontIdx] = glm::min(vel[frontIdx], Cars[frontIdx].speed + 12.0f);
-                }
-            }
-        }
-
-
         // Group cars by route
         std::vector<std::vector<int>> byRoute(Routes.size());
         for (int i = 0; i < (int)Cars.size(); i++) byRoute[Cars[i].routeId].push_back(i);
-
-        // For each route: sort by s, then do "follow the leader" + stop at junctions
-        for (int rid = 0; rid < (int)Routes.size(); rid++) {
-            auto& idxs = byRoute[rid];
-            if (idxs.empty()) continue;
-
-            const Route& R = Routes[rid];
-
-            std::sort(idxs.begin(), idxs.end(), [&](int a, int b){
-                return Cars[a].s < Cars[b].s;
-            });
-
-            bool green = lightGreenForRoute(R);
-
-            // Car-following params
-            const float minGap = 2.5f;        // extra gap
-            const float lookStop = 6.0f;      // start slowing when closer than this to stopline
-            const float maxAccel = 6.0f;      // speed-up rate
-            const float maxBrake = 10.0f;     // braking rate
-
-            // For each car, compute desired speed considering the car in front (cyclic)
-            for (int k = 0; k < (int)idxs.size(); k++) {
-                CarState& c = Cars[idxs[k]];
-                CarState& front = Cars[idxs[(k + 1) % idxs.size()]];
-
-                float gap = distAhead(R, c.s, front.s) - front.length;
-                float safe = c.length + minGap;
-
-                float targetSpeed = c.speed;
-
-                if (gap < safe) {
-                    targetSpeed = 0.0f;
-                } else if (gap < safe + 10.0f) {
-                    float t = (gap - safe) / 10.0f;
-                    targetSpeed = c.speed * glm::clamp(t, 0.0f, 1.0f);
-                }
-
-                // Stop at "intersections": we stop at each waypoint (corners) if red.
-                // Compute distance to next waypoint ahead
-                int seg = 0;
-                posOnRoute(R, c.s, &seg);
-                float nextWpS = R.cumLen[seg + 1];
-                float dToWp = nextWpS - c.s;
-                if (dToWp < 0.0f) dToWp += R.total;
-
-                if (!green) {
-                    // stop slightly before the waypoint
-                    float stopLine = 2.0f;
-                    float dToStop = dToWp - stopLine;
-
-                    if (dToStop < lookStop) {
-                        float t = glm::clamp(dToStop / lookStop, 0.0f, 1.0f);
-                        targetSpeed = std::min(targetSpeed, c.speed * t);
-                    }
-                    if (dToStop <= 0.2f) {
-                        targetSpeed = 0.0f;
-                    }
-                }
-
-                // Smooth speed change via accel/brake
-                float currV = c.speed; // we store base speed here, but we need current velocity separately
-                // We'll store current velocity in c.speed? No, keep base speed. Use a static array:
-            }
-
-            // We need per-car current velocity; store it in a parallel array (kept across frames)
-        }
-
 
         for (int rid = 0; rid < (int)Routes.size(); rid++) {
             auto& idxs = byRoute[rid];
@@ -316,7 +214,8 @@ protected:
             std::sort(idxs.begin(), idxs.end(), [&](int a, int b){
                 return Cars[a].s < Cars[b].s;
             });
-
+            //collision logic is seperated from the normal one
+            if (rid==colroute && collisionMode) continue;
             for (int k = 0; k < (int)idxs.size(); k++) {
                 int ci = idxs[k];
                 int fi = idxs[(k + 1) % idxs.size()];
@@ -366,6 +265,72 @@ protected:
                 SC.I[c.inst].Wm = MakeCarTRS(p, yaw, c.yawOffset);
             }
         }
+        //crush logic
+        if (collisionMode) {
+            auto& idxscrush = byRoute[colroute];
+            if (idxscrush.size() >= 2) {
+                // 1. Setup and Sorting
+                std::sort(idxscrush.begin(), idxscrush.end(), [&](int a, int b){
+                    return Cars[a].s < Cars[b].s;
+                });
+
+                int rearIdx = idxscrush[0];
+                int frontIdx = idxscrush[1];
+                CarState& rear = Cars[rearIdx];
+                CarState& front = Cars[frontIdx];
+                const Route& R = Routes[colroute];
+
+                // 2. Calculate current gap
+                float gap = distAhead(R, rear.s, front.s) - front.length;
+
+                float desiredRear = rear.speed;
+                float desiredFront = front.speed;
+
+                // 3. The Logic State Machine
+
+                if (gap > 20.0f && gap < 60.0f) {
+                    // STATE A: Gap is too long -> Teleport rear close to front
+                    // We place it exactly 5 meters behind the front car
+                    rear.s = wrapPos(front.s - (front.length + 5.0f), R.total);
+                    desiredRear = front.speed; // Match speed immediately after teleport
+                }
+                else if (gap < front.length / 2) {
+                    // STATE B: Crush/Hit (Gap smaller than car length/touching)
+                    // Front car gets a massive boost, Rear car slams brakes
+                    desiredFront = front.speed + 20.0f;
+                    desiredRear  -= 5.0f;
+                }
+                else {
+                    // STATE C: Gap is larger than 0 but less than "too long"
+                    // Rear car speeds up to chase, Front moves slowly to be caught
+                    desiredRear = rear.speed + 15.0f;
+                    desiredFront -= 5.0f;
+                }
+
+                // 4. Apply Physics (Smoothing the speed changes)
+                // Use high brake for the 'crush' feel, normal accel for the 'chase'
+                float vR = vel[rearIdx];
+                if (vR < desiredRear) vR = std::min(desiredRear, vR + 50.0f * dt);
+                else                  vR = std::max(desiredRear, vR - 50.0f * dt);
+                vel[rearIdx] = vR;
+
+                float vF = vel[frontIdx];
+                if (vF < desiredFront) vF = std::min(desiredFront, vF + 50.0f * dt);
+                else                   vF = std::max(desiredFront, vF - 50.0f * dt);
+                vel[frontIdx] = vF;
+
+
+                // 5. Update positions and visual matrices
+                rear.s = wrapPos(rear.s + vel[rearIdx] * dt, R.total);
+                front.s = wrapPos(front.s + vel[frontIdx] * dt, R.total);
+
+                for (int ci : {rearIdx, frontIdx}) {
+                    glm::vec3 p = posOnRoute(R, Cars[ci].s);
+                    float yaw = yawAlongRoute(R, Cars[ci].s);
+                    SC.I[Cars[ci].inst].Wm = MakeCarTRS(p, yaw, Cars[ci].yawOffset);
+                }
+            }
+        }
     }
 
     void updatePedestrian(float dt) {
@@ -395,36 +360,72 @@ protected:
         const float offset = 3.0f;
         // === LANE-CORRECT loops (the ones you said work) ===
         // Inner is around +/-20, Outer around +/-68
-        Route innerCW;
-        innerCW.wp = { {-20,0.3f,-20}, {20,0.3f,-20}, {20,0.3f,20}, {-20,0.3f,20} };
-        innerCW.isHorizontalFirst = true;
-        buildRoute(innerCW);
+        Route innerCWS;
+        innerCWS.wp = { {-20,0.3f,-20}, {20,0.3f,-20}, {20,0.3f,20}, {-20,0.3f,20} };
+        innerCWS.isHorizontalFirst = true;
+        buildRoute(innerCWS);
 
-        Route innerCCW = innerCW;
-        innerCCW.wp={{-20.0f-offset,0.3f,-20.0f-offset},
-            {-20.0f-offset,0.3f,20.0f+offset},
-            {20.0f+offset,0.3f,20.0f+offset},
-            {20.0f+offset,0.3f,-20.0f-offset}};
-        innerCCW.isHorizontalFirst = true;
-        buildRoute(innerCCW);
+        Route innerCWF;
+        innerCWF.wp = { {-20-offset,0.3f,-20-offset},
+            {20+offset,0.3f,-20-offset},
+            {20+offset,0.3f,20+offset},
+            {-20-offset,0.3f,20+offset} };
+        innerCWF.isHorizontalFirst = true;
+        buildRoute(innerCWF);
 
-        Route outerCW;
-        outerCW.wp = { {-68,0.3f,-68}, {68,0.3f,-68}, {68,0.3f,68}, {-68,0.3f,68} };
-        outerCW.isHorizontalFirst = true;
-        buildRoute(outerCW);
+        Route innerCCWS;
+        innerCCWS.wp={{-20.0f-2*offset,0.3f,-20.0f-2*offset},
+            {-20.0f-2*offset,0.3f,20.0f+2*offset},
+            {20.0f+2*offset,0.3f,20.0f+2*offset},
+            {20.0f+2*offset,0.3f,-20.0f-2*offset}};
+        innerCCWS.isHorizontalFirst = true;
+        buildRoute(innerCCWS);
 
-        Route outerCCW = outerCW;
-        outerCCW.wp={{-68.0f-offset,0.3f,-68.0f-offset},
-            {-68.0f-offset,0.3f,68.0f+offset},
-            {68.0f+offset,0.3f,68.0f+offset},
-            {68.0f+offset,0.3f,-68.0f-offset}};
-        outerCCW.isHorizontalFirst = true;
-        buildRoute(outerCCW);
+        Route innerCCWF;
+        innerCCWF.wp={{-20.0f-3*offset,0.3f,-20.0f-3*offset},
+            {-20.0f-3*offset,0.3f,20.0f+3*offset},
+            {20.0f+3*offset,0.3f,20.0f+3*offset},
+            {20.0f+3*offset,0.3f,-20.0f-3*offset}};
+        innerCCWF.isHorizontalFirst = true;
+        buildRoute(innerCCWF);
 
-        Routes.push_back(innerCW);   // routeId 0
-        Routes.push_back(innerCCW);  // routeId 1
-        Routes.push_back(outerCW);   // routeId 2
-        Routes.push_back(outerCCW);  // routeId 3
+        Route outerCWS;
+        outerCWS.wp = { {-68,0.3f,-68}, {68,0.3f,-68}, {68,0.3f,68}, {-68,0.3f,68} };
+        outerCWS.isHorizontalFirst = true;
+        buildRoute(outerCWS);
+
+        Route outerCWF;
+        outerCWF.wp = { {-68-offset,0.3f,-68-offset},
+            {68+offset,0.3f,-68-offset},
+            {68+offset,0.3f,68+offset},
+            {-68-offset,0.3f,68+offset} };
+        outerCWF.isHorizontalFirst = true;
+        buildRoute(outerCWF);
+
+        Route outerCCWS;
+        outerCCWS.wp={{-68.0f-2*offset,0.3f,-68.0f-2*offset},
+            {-68.0f-2*offset,0.3f,68.0f+2*offset},
+            {68.0f+2*offset,0.3f,68.0f+2*offset},
+            {68.0f+2*offset,0.3f,-68.0f-2*offset}};
+        outerCCWS.isHorizontalFirst = true;
+        buildRoute(outerCCWS);
+
+        Route outerCCWF;
+        outerCCWF.wp={{-68.0f-3*offset,0.3f,-68.0f-3*offset},
+            {-68.0f-3*offset,0.3f,68.0f+3*offset},
+            {68.0f+3*offset,0.3f,68.0f+3*offset},
+            {68.0f+3*offset,0.3f,-68.0f-3*offset}};
+        outerCCWF.isHorizontalFirst = true;
+        buildRoute(outerCCWF);
+
+        Routes.push_back(innerCWS);   // routeId 0
+        Routes.push_back(innerCWF);   // routeId 1
+        Routes.push_back(innerCCWS);  // routeId 2
+        Routes.push_back(innerCCWF);  // routeId 3
+        Routes.push_back(outerCWS);   // routeId 4
+        Routes.push_back(outerCWF);   // routeId 5
+        Routes.push_back(outerCCWS);  // routeId 6
+        Routes.push_back(outerCCWF);  // routeId 7
 
         float yawOffset = 0.0f; // if cars face wrong, set +90/-90/180
 
@@ -448,7 +449,8 @@ protected:
             int ring = (std::abs(p.x) > 45.0f || std::abs(p.z) > 45.0f) ? 1 : 0; // 0 inner, 1 outer
             int dir = ((i * 37) % 2); // 0 cw, 1 ccw
 
-            int routeId = (ring == 0) ? (dir == 0 ? 0 : 1) : (dir == 0 ? 2 : 3);
+            //int routeId = (ring == 0) ? (dir == 0 ? 0 : 1) : (dir == 0 ? 2 : 3);
+            int routeId = i % 7;
             const Route& R = Routes[routeId];
 
             CarState c;
@@ -640,7 +642,7 @@ protected:
         bool tDown = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
 
         if (tDown && !tWasDown) {
-            triggerCollision = true;  // set flag for updateCars
+            collisionMode = !collisionMode;  // set flag for updateCars
         }
         tWasDown = tDown;
 
