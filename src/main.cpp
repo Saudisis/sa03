@@ -56,6 +56,10 @@ protected:
     float panSpeed   = 120.0f;
     float flySpeed   = 140.0f;
 
+    // collision control
+    bool triggerCollision = false;  // set when T is pressed
+    bool collisionMode = false; // optional toggle
+    float hitDistance = 1.2f;   // how close cars need to be to "hit"
     // =========================
     // TRAFFIC
     // =========================
@@ -76,8 +80,19 @@ protected:
         float length = 3.0f;   // approximate car length
     };
 
+    // ===========================
+    // PEDESTRIAN
+    // ===========================
+    struct PedestrianState {
+        int instId = -1;        // instance index
+        Route walkRoute;        // walking path
+        float s = 0.0f;         // distance along route [0..total)
+        float speed = 1.8f;     // walking speed (units/sec) ~1.8 m/s typical
+    };
+
     std::vector<CarState> Cars;
     std::vector<Route> Routes;
+    std::vector<PedestrianState> Pedestrians;
 
     float trafficTime = 0.0f;
     float lightPeriod = 10.0f;   // seconds per phase
@@ -172,6 +187,48 @@ protected:
         if (Cars.empty()) return;
         trafficTime += dt;
 
+        // Because we want stable velocity per car, we keep it in a member array.
+        // Easiest: create it lazily with same size as Cars.
+        static std::vector<float> vel;
+        if (vel.size() != Cars.size()) {
+            vel.assign(Cars.size(), 0.0f);
+            for (size_t i = 0; i < Cars.size(); i++) vel[i] = Cars[i].speed;
+        }
+
+        if (triggerCollision) {
+            triggerCollision = false;  // reset immediately
+
+            if (Cars.size() >= 2) {
+                // Pick a route to force collision (e.g., route 0)
+                int rid = 0;
+                std::vector<int> idxs;
+                for (int i = 0; i < (int)Cars.size(); i++)
+                    if (Cars[i].routeId == rid)
+                        idxs.push_back(i);
+
+                if (idxs.size() >= 2) {
+                    // sort cars along route
+                    std::sort(idxs.begin(), idxs.end(), [&](int a, int b){
+                        return Cars[a].s < Cars[b].s;
+                    });
+
+                    int rearIdx  = idxs[0];  // rear car
+                    int frontIdx = idxs[1];  // front car
+
+                    // push rear car close to front car
+                    Cars[rearIdx].s = wrapPos(Cars[frontIdx].s - 1.5f, Routes[rid].total);
+
+                    // adjust velocities
+                    vel[frontIdx] += 8.0f; // front car speeds up
+                    vel[rearIdx]  = std::max(0.0f, vel[rearIdx] - 6.0f);
+
+                    // clamp front car speed
+                    vel[frontIdx] = glm::min(vel[frontIdx], Cars[frontIdx].speed + 12.0f);
+                }
+            }
+        }
+
+
         // Group cars by route
         std::vector<std::vector<int>> byRoute(Routes.size());
         for (int i = 0; i < (int)Cars.size(); i++) byRoute[Cars[i].routeId].push_back(i);
@@ -242,13 +299,6 @@ protected:
             // We need per-car current velocity; store it in a parallel array (kept across frames)
         }
 
-        // Because we want stable velocity per car, we keep it in a member array.
-        // Easiest: create it lazily with same size as Cars.
-        static std::vector<float> vel;
-        if (vel.size() != Cars.size()) {
-            vel.assign(Cars.size(), 0.0f);
-            for (size_t i = 0; i < Cars.size(); i++) vel[i] = Cars[i].speed;
-        }
 
         for (int rid = 0; rid < (int)Routes.size(); rid++) {
             auto& idxs = byRoute[rid];
@@ -318,11 +368,31 @@ protected:
         }
     }
 
+    void updatePedestrian(float dt) {
+        for (auto& ped : Pedestrians) {
+            if (ped.instId < 0 || ped.walkRoute.total <= 0.0001f) continue;
+
+            // Advance along the walking route
+            ped.s = wrapPos(ped.s + ped.speed * dt, ped.walkRoute.total);
+
+            // Get position and yaw on the route
+            glm::vec3 pos = posOnRoute(ped.walkRoute, ped.s);
+            float yaw = yawAlongRoute(ped.walkRoute, ped.s);
+
+            // Update instance world matrix: position + rotation
+            glm::mat4 M(1.0f);
+            M = glm::translate(M, pos);
+            M = glm::rotate(M, yaw, glm::vec3(0, 1, 0));
+            
+            SC.I[ped.instId].Wm = M;
+        }
+    }
+
     void initTraffic() {
         Cars.clear();
         Routes.clear();
         trafficTime = 0.0f;
-
+        const float offset = 3.0f;
         // === LANE-CORRECT loops (the ones you said work) ===
         // Inner is around +/-20, Outer around +/-68
         Route innerCW;
@@ -331,7 +401,10 @@ protected:
         buildRoute(innerCW);
 
         Route innerCCW = innerCW;
-        std::reverse(innerCCW.wp.begin(), innerCCW.wp.end());
+        innerCCW.wp={{-20.0f-offset,0.3f,-20.0f-offset},
+            {-20.0f-offset,0.3f,20.0f+offset},
+            {20.0f+offset,0.3f,20.0f+offset},
+            {20.0f+offset,0.3f,-20.0f-offset}};
         innerCCW.isHorizontalFirst = true;
         buildRoute(innerCCW);
 
@@ -341,7 +414,10 @@ protected:
         buildRoute(outerCW);
 
         Route outerCCW = outerCW;
-        std::reverse(outerCCW.wp.begin(), outerCCW.wp.end());
+        outerCCW.wp={{-68.0f-offset,0.3f,-68.0f-offset},
+            {-68.0f-offset,0.3f,68.0f+offset},
+            {68.0f+offset,0.3f,68.0f+offset},
+            {68.0f+offset,0.3f,-68.0f-offset}};
         outerCCW.isHorizontalFirst = true;
         buildRoute(outerCCW);
 
@@ -399,6 +475,60 @@ protected:
             c.s = wrapPos(c.s + float((i * 19) % 40), R.total);
 
             Cars.push_back(c);
+        }
+    }
+
+    void initPedestrian() {
+        Pedestrians.clear();
+        
+        // Find all pedestrian instances by looking for "pedestrians" in their IDs
+        for (int i = 0; i < SC.InstanceCount; i++) {
+            if (SC.I[i].id != nullptr) {
+                std::string instId = *SC.I[i].id;
+                if (instId.find("pedestrians") != std::string::npos) {
+                    PedestrianState ped;
+                    ped.instId = i;
+                    ped.speed = 1.8f;
+                    ped.s = 0.0f;
+                    
+                    // Define route based on instance ID
+                    if (instId.find("center_up") != std::string::npos) {
+                        // Center up block (north area)
+                        ped.walkRoute.wp = {
+                            glm::vec3(-17.0f, 0.3f, -65.0f),   // NW corner
+                            glm::vec3( 17.0f, 0.3f, -65.0f),   // NE corner
+                            glm::vec3( 17.0f, 0.3f, -32.0f),   // SE corner
+                            glm::vec3(-17.0f, 0.3f, -32.0f)    // SW corner
+                        };
+                    } else if (instId.find("center_left") != std::string::npos) {
+                        // Center left block (west area)
+                        ped.walkRoute.wp = {
+                            glm::vec3(-65.0f, 0.3f, -17.0f),   // NW corner
+                            glm::vec3(-32.0f, 0.3f, -17.0f),   // NE corner
+                            glm::vec3(-32.0f, 0.3f,  17.0f),   // SE corner
+                            glm::vec3(-65.0f, 0.3f,  17.0f)    // SW corner
+                        };
+                    } else {
+                        // Default: center block (main area)
+                        ped.walkRoute.wp = {
+                            glm::vec3(-17.0f, 0.3f, -17.0f),   // NW corner
+                            glm::vec3( 17.0f, 0.3f, -17.0f),   // NE corner
+                            glm::vec3( 17.0f, 0.3f,  17.0f),   // SE corner
+                            glm::vec3(-17.0f, 0.3f,  17.0f)    // SW corner
+                        };
+                    }
+                    
+                    buildRoute(ped.walkRoute);
+                    Pedestrians.push_back(ped);
+                    
+                    std::cout << "[Pedestrian] Initialized \"" << instId << "\" at instance " 
+                              << ped.instId << " with route length " << ped.walkRoute.total << " units\n";
+                }
+            }
+        }
+        
+        if (Pedestrians.empty()) {
+            std::cout << "[Pedestrian] Warning: No pedestrian instances found\n";
         }
     }
 
@@ -460,6 +590,7 @@ protected:
         CamDist  = 80.0f;
 
         initTraffic();
+        initPedestrian();
 
         txt.init(this, &outText);
     }
@@ -504,8 +635,19 @@ protected:
         glm::vec3 m(0.0f), r(0.0f);
         bool fire = false;
         getSixAxis(deltaT, m, r, fire);
+        //accident
+        static bool tWasDown = false;
+        bool tDown = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
+
+        if (tDown && !tWasDown) {
+            triggerCollision = true;  // set flag for updateCars
+        }
+        tWasDown = tDown;
+
+
 
         updateCars(deltaT);
+        updatePedestrian(deltaT);
 
         if (glfwGetKey(window, GLFW_KEY_LEFT))  CamYaw  -= orbitSpeed * deltaT;
         if (glfwGetKey(window, GLFW_KEY_RIGHT)) CamYaw  += orbitSpeed * deltaT;
@@ -577,6 +719,131 @@ protected:
 
         GlobalUniformBufferObject guboLocal = gubo;
         UniformBufferObject ubo{};
+
+        // ===== UPDATE ANIMATION TIME FOR ALL INSTANCES =====
+        std::unordered_set<int> updatedSkinnedModels;
+        auto sampleTrack = [](const AnimationTrack& track, float time) -> AnimationKeyframe {
+            AnimationKeyframe out{};
+            out.translation = glm::vec3(0.0f);
+            out.rotation = glm::quat(1, 0, 0, 0);
+            out.scale = glm::vec3(1.0f);
+
+            if (track.keyframes.empty()) return out;
+
+            int idx0 = 0;
+            for (int i = 0; i < (int)track.keyframes.size() - 1; i++) {
+                if (track.keyframes[i].time <= time && time <= track.keyframes[i + 1].time) {
+                    idx0 = i;
+                    break;
+                }
+            }
+            const auto& kf0 = track.keyframes[idx0];
+            const auto& kf1 = track.keyframes[std::min(idx0 + 1, (int)track.keyframes.size() - 1)];
+            float t = 0.0f;
+            if (kf1.time > kf0.time) {
+                t = (time - kf0.time) / (kf1.time - kf0.time);
+            }
+            out.translation = glm::mix(kf0.translation, kf1.translation, t);
+            out.rotation = glm::slerp(kf0.rotation, kf1.rotation, t);
+            out.scale = glm::mix(kf0.scale, kf1.scale, t);
+            return out;
+        };
+
+        for (int i = 0; i < SC.InstanceCount; i++) {
+            // Check if this instance has an animated model
+            int modelIdx = SC.I[i].Mid;
+            if (modelIdx >= 0 && modelIdx < SC.ModelCount && 
+                !SC.M[modelIdx]->animations.empty()) {
+				
+                // Increment animation time
+                SC.I[i].animTime += deltaT;
+				
+                // Loop animation
+                float duration = SC.M[modelIdx]->animations[0].duration;
+                if (SC.I[i].animTime > duration) {
+                    SC.I[i].animTime = std::fmod(SC.I[i].animTime, duration);
+                }
+
+                // CPU skinning update (only once per model per frame)
+                Model* model = SC.M[modelIdx];
+                if (model->hasSkinning && !updatedSkinnedModels.count(modelIdx)) {
+                    const auto& clip = model->animations[0];
+                    const int nodeCount = (int)model->nodeParents.size();
+                    if (nodeCount > 0 &&
+                        model->nodeBaseTranslation.size() == (size_t)nodeCount &&
+                        model->nodeBaseRotation.size() == (size_t)nodeCount &&
+                        model->nodeBaseScale.size() == (size_t)nodeCount) {
+
+                        std::vector<glm::vec3> t = model->nodeBaseTranslation;
+                        std::vector<glm::quat> r = model->nodeBaseRotation;
+                        std::vector<glm::vec3> s = model->nodeBaseScale;
+
+                        for (const auto& track : clip.tracks) {
+                            int node = track.jointIndex;
+                            if (node < 0 || node >= nodeCount) continue;
+                            AnimationKeyframe kf = sampleTrack(track, SC.I[i].animTime);
+                            switch (track.path) {
+                                case AnimationTrack::Path::Translation:
+                                    t[node] = kf.translation;
+                                    break;
+                                case AnimationTrack::Path::Rotation:
+                                    r[node] = kf.rotation;
+                                    break;
+                                case AnimationTrack::Path::Scale:
+                                    s[node] = kf.scale;
+                                    break;
+                            }
+                        }
+
+                        std::vector<glm::mat4> local(nodeCount);
+                        for (int n = 0; n < nodeCount; n++) {
+                            glm::mat4 M(1.0f);
+                            M = glm::translate(M, t[n]);
+                            M = M * glm::mat4_cast(r[n]);
+                            M = glm::scale(M, s[n]);
+                            local[n] = M;
+                        }
+
+                        std::vector<glm::mat4> global(nodeCount, glm::mat4(1.0f));
+                        std::vector<char> computed(nodeCount, 0);
+                        auto computeGlobal = [&](auto&& self, int idx) -> glm::mat4 {
+                            if (computed[idx]) return global[idx];
+                            int parent = model->nodeParents[idx];
+                            if (parent >= 0 && parent < nodeCount) {
+                                global[idx] = self(self, parent) * local[idx];
+                            } else {
+                                global[idx] = local[idx];
+                            }
+                            computed[idx] = 1;
+                            return global[idx];
+                        };
+                        for (int n = 0; n < nodeCount; n++) {
+                            computeGlobal(computeGlobal, n);
+                        }
+
+                        const size_t jointCount = model->skinData.jointIndices.size();
+                        std::vector<glm::mat4> jointMatrices(jointCount, glm::mat4(1.0f));
+                        for (size_t j = 0; j < jointCount; j++) {
+                            int node = model->skinData.jointIndices[j];
+                            if (node < 0 || node >= nodeCount) continue;
+                            if (j < model->skinData.inverseBindMatrices.size()) {
+                                jointMatrices[j] = global[node] * model->skinData.inverseBindMatrices[j];
+                            }
+                        }
+
+                        model->updateSkinnedVertices(jointMatrices);
+                        updatedSkinnedModels.insert(modelIdx);
+                    }
+                }
+
+                static bool logged = false;
+                if (!logged) {
+                    std::cout << "[Animation] Model " << modelIdx << " animation time: " 
+                              << SC.I[i].animTime << "s / " << duration << "s\n";
+                    logged = true;
+                }
+            }
+        }
 
         for (int i = 0; i < SC.InstanceCount; i++) {
             ubo.mMat   = SC.I[i].Wm;
