@@ -71,8 +71,10 @@ elseif(WIN32)
     # Windows specific configurations
 
     # Set paths to libraries (modify these based on your SDK and library installation)
-    set(GLFW "C:/VulkanSDK/libs/glfw-3.4.bin.WIN64")
-    set(GLM "C:/VulkanSDK/libs/glm")
+    set(GLFW "D:/TOOL/Vulkan/libs/glfw-3.4.bin.WIN64")
+    set(GLM "D:/TOOL/Vulkan/libs//glm")
+    set(GLSLANG_VALIDATOR "D:/TOOL/Vulkan/Bin/glslangValidator.exe")
+
 
     # List of directories to add to the include path
     list(APPEND INCLUDE_DIRS "${GLFW}/include" ${GLM} headers)
@@ -96,9 +98,29 @@ elseif(WIN32)
 
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
+    # === Shader Compilation ===
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
+    file(GLOB GLSL_SOURCE_FILES "${CMAKE_SOURCE_DIR}/shaders/*.vert" "${CMAKE_SOURCE_DIR}/shaders/*.frag")
 
-    # Copy precompiled SPIR-V shaders
+    set(SPIRV_BINARY_FILES "")
+    foreach(GLSL ${GLSL_SOURCE_FILES})
+        get_filename_component(FILE_NAME ${GLSL} NAME)
+        set(SPV_FILE ${CMAKE_BINARY_DIR}/shaders/${FILE_NAME}.spv)
+
+        add_custom_command(
+                OUTPUT ${SPV_FILE}
+                COMMAND ${GLSLANG_VALIDATOR} -V ${GLSL} -o ${SPV_FILE}
+                DEPENDS ${GLSL}
+                COMMENT "Compiling shader: ${GLSL}"
+                VERBATIM
+        )
+
+        list(APPEND SPIRV_BINARY_FILES ${SPV_FILE})
+    endforeach()
+
+    add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
+    add_dependencies(${PROJECT_NAME} Shaders)
+
     file(GLOB SHADER_SPV_FILES "${CMAKE_SOURCE_DIR}/shaders/*.spv")
     file(COPY ${SHADER_SPV_FILES} DESTINATION ${CMAKE_BINARY_DIR}/shaders)
     file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)
@@ -141,7 +163,7 @@ elseif(UNIX AND NOT APPLE)
 
         add_custom_command(
                 OUTPUT ${SPV_FILE}
-                COMMAND glslangValidator -V ${GLSL} -o ${SPV_FILE}
+                COMMAND GLSLANG_VALIDATOR -V ${GLSL} -o ${SPV_FILE}
                 DEPENDS ${GLSL}
                 COMMENT "Compiling shader: ${GLSL}"
         )

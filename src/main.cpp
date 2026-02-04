@@ -596,8 +596,8 @@ protected:
         );
 
         P.init(this, &VD,
-               "shaders/PhongVert.spv",
-               "shaders/PhongFrag.spv",
+               "shaders/HalfLambertVert.vert.spv",
+               "shaders/HalfLambertFrag.frag.spv",
                {&DSL});
         P.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL,
                               VK_POLYGON_MODE_FILL,
@@ -740,10 +740,13 @@ protected:
         );
 
         GlobalUniformBufferObject gubo{};
-        gubo.lightDir   = glm::normalize(glm::vec3(-1.0f, -1.0f, -0.5f));
-        gubo.lightColor = glm::vec4(1, 1, 1, 1);
+        // gubo.lightDir   = glm::normalize(glm::vec3(-1.0f, -1.0f, -0.5f));
+        // gubo.lightColor = glm::vec4(1, 1, 1, 1);
+        //simulate sunsetlight to make the showcase more obvious
+        gubo.lightDir   = glm::vec4(glm::normalize(glm::vec3(-1.0f, -0.2f, -0.8f)), 0.0f);
+        gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         gubo.eyePos     = CamPos;
-        gubo.eyeDir     = glm::vec4(glm::normalize(CamTarget - CamPos), 1.0f);
+        gubo.eyeDir     = glm::vec4(glm::normalize(CamTarget - CamPos), 0.0f);
 
         GlobalUniformBufferObject guboLocal = gubo;
         UniformBufferObject ubo{};
