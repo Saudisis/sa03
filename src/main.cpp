@@ -360,18 +360,27 @@ protected:
         const float offset = 3.0f;
         // === LANE-CORRECT loops (the ones you said work) ===
         // Inner is around +/-20, Outer around +/-68
+
         Route innerCWS;
-        innerCWS.wp = { {-20,0.3f,-20}, {20,0.3f,-20}, {20,0.3f,20}, {-20,0.3f,20} };
+        innerCWS.wp = { {-20,0.3f,-20},
+            {20,0.3f,-20},
+            {20,0.3f,20},
+            {-20,0.3f,20} };
         innerCWS.isHorizontalFirst = true;
         buildRoute(innerCWS);
 
-        Route innerCWF;
-        innerCWF.wp = { {-20-offset,0.3f,-20-offset},
-            {20+offset,0.3f,-20-offset},
-            {20+offset,0.3f,20+offset},
-            {-20-offset,0.3f,20+offset} };
-        innerCWF.isHorizontalFirst = true;
-        buildRoute(innerCWF);
+        //route of three blocks in the middle
+        Route threeCWF;
+        threeCWF.wp = {
+            {-68-offset,0.3f,-20-offset},
+            {68+offset,0.3f,-20-offset},
+            {68+offset,0.3f,20+offset},
+            {-68-offset,0.3f,20+offset}
+        };
+        threeCWF.isHorizontalFirst = true;
+        buildRoute(threeCWF);
+
+
 
         Route innerCCWS;
         innerCCWS.wp={{-20.0f-2*offset,0.3f,-20.0f-2*offset},
@@ -389,18 +398,35 @@ protected:
         innerCCWF.isHorizontalFirst = true;
         buildRoute(innerCCWF);
 
+
         Route outerCWS;
-        outerCWS.wp = { {-68,0.3f,-68}, {68,0.3f,-68}, {68,0.3f,68}, {-68,0.3f,68} };
+        outerCWS.wp = { {-68,0.3f,-68},
+            {68,0.3f,-68},
+            {68,0.3f,68},
+            {-68,0.3f,68} };
         outerCWS.isHorizontalFirst = true;
         buildRoute(outerCWS);
 
-        Route outerCWF;
-        outerCWF.wp = { {-68-offset,0.3f,-68-offset},
+        //H shaped route
+        Route HCWF;
+        HCWF.wp = {
+            {-68-offset,0.3f,-68-offset},
+            {-20-offset,0.3f,-68-offset},
+            {-20-offset,0.3f,-20-offset},
+            {20+offset,0.3f,-20-offset},
+            {20+offset,0.3f,-68-offset},
             {68+offset,0.3f,-68-offset},
             {68+offset,0.3f,68+offset},
-            {-68-offset,0.3f,68+offset} };
-        outerCWF.isHorizontalFirst = true;
-        buildRoute(outerCWF);
+            {20+offset,0.3f,68+offset},
+            {20+offset,0.3f,20+offset},
+            {-20-offset,0.3f,20+offset},
+            {-20-offset,0.3f,68+offset},
+            {-68-offset,0.3f,68+offset}
+        };
+        HCWF.isHorizontalFirst = true;
+        buildRoute(HCWF);
+
+
 
         Route outerCCWS;
         outerCCWS.wp={{-68.0f-2*offset,0.3f,-68.0f-2*offset},
@@ -419,11 +445,11 @@ protected:
         buildRoute(outerCCWF);
 
         Routes.push_back(innerCWS);   // routeId 0
-        Routes.push_back(innerCWF);   // routeId 1
+        Routes.push_back(threeCWF);   // routeId 1
         Routes.push_back(innerCCWS);  // routeId 2
         Routes.push_back(innerCCWF);  // routeId 3
         Routes.push_back(outerCWS);   // routeId 4
-        Routes.push_back(outerCWF);   // routeId 5
+        Routes.push_back(HCWF);   // routeId 5
         Routes.push_back(outerCCWS);  // routeId 6
         Routes.push_back(outerCCWF);  // routeId 7
 
