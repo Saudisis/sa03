@@ -1,186 +1,87 @@
 cmake_minimum_required(VERSION 3.10)
 project(A03 C CXX)
 
-# Enable C and C++ languages
-enable_language(C)
-enable_language(CXX)
-
-# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Platform-specific settings
-if(APPLE)
-    # macOS specific configurations
+# ---------- Vulkan ----------
+find_package(Vulkan REQUIRED)
 
-    # Vulkan Setup for macOS
-    find_package(Vulkan REQUIRED)
-    if(Vulkan_FOUND)
-        message(STATUS "Vulkan found at ${Vulkan_INCLUDE_DIR}")
-    else()
-        message(FATAL_ERROR "Vulkan not found!")
-    endif()
+# ---------- glslangValidator (from Vulkan SDK) ----------
+find_program(GLSLANG_VALIDATOR
+        NAMES glslangValidator glslangValidator.exe
+        HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/Bin32"
+        REQUIRED
+)
+message(STATUS "glslangValidator: ${GLSLANG_VALIDATOR}")
 
-    # GLFW and GLM Setup for macOS
-    find_package(glfw3 REQUIRED)
-    find_package(glm REQUIRED)
-    find_package(Threads REQUIRED)
+# ---------- Dependencies (GLFW + GLM) ----------
+include(FetchContent)
 
-    # Define the project source and header files
-    file(GLOB_RECURSE SOURCES src/*.cpp)
-    file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
+FetchContent_Declare(
+        glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.4
+)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(glfw)
 
-    # Define the project executable
-    add_executable(A03 ${SOURCES} ${HEADERS}
-            tools/roads.cpp)
+FetchContent_Declare(
+        glm
+        GIT_REPOSITORY https://github.com/g-truc/glm.git
+        GIT_TAG 1.0.1
+)
+FetchContent_MakeAvailable(glm)
 
-    # Include directories
-    target_include_directories(A03 PRIVATE ${GLM_INCLUDE_DIRS})
-    target_include_directories(A03 PRIVATE ${CMAKE_SOURCE_DIR}/include)
-    target_include_directories(A03 PUBLIC ${Vulkan_INCLUDE_DIR})
+# ---------- Project sources ----------
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/*.h" "${CMAKE_SOURCE_DIR}/include/*.hpp")
 
-    # Link libraries
-    target_link_libraries(A03 PRIVATE Vulkan::Vulkan glfw Threads::Threads)
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan glfw glm::glm)
 
-    # Shader setup for macOS
-    file(GLOB SPIRV_SOURCE_FILES "${CMAKE_SOURCE_DIR}/shaders/*.spv")
+# ---------- Shaders ----------
+set(SHADERS_SRC_DIR "${CMAKE_SOURCE_DIR}/shaders")
+set(SHADERS_OUT_DIR "${CMAKE_BINARY_DIR}/shaders")
+file(MAKE_DIRECTORY "${SHADERS_OUT_DIR}")
 
-    # Debug: print the found SPIR-V files
-    message(STATUS "Found SPIR-V files: ${SPIRV_SOURCE_FILES}")
+file(GLOB GLSL_SOURCE_FILES CONFIGURE_DEPENDS
+        "${SHADERS_SRC_DIR}/*.vert"
+        "${SHADERS_SRC_DIR}/*.frag"
+)
 
-    # Create the directory 'shaders' in the build directory
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
+set(SPIRV_BINARY_FILES "")
+foreach(GLSL ${GLSL_SOURCE_FILES})
+    get_filename_component(FILE_NAME ${GLSL} NAME)  # keeps .vert/.frag
+    set(SPV_FILE "${SHADERS_OUT_DIR}/${FILE_NAME}.spv")
 
-    # Copy the SPIR-V files from the source 'shaders' directory to the build directory
-    foreach(SPV_FILE ${SPIRV_SOURCE_FILES})
-        message(STATUS "Copying SPIR-V file: ${SPV_FILE}")
-        file(COPY ${SPV_FILE} DESTINATION ${CMAKE_BINARY_DIR}/shaders)
-    endforeach()
+    add_custom_command(
+            OUTPUT "${SPV_FILE}"
+            COMMAND "${GLSLANG_VALIDATOR}" -V "${GLSL}" -o "${SPV_FILE}"
+            DEPENDS "${GLSL}"
+            COMMENT "Compiling shader: ${GLSL}"
+            VERBATIM
+    )
+    list(APPEND SPIRV_BINARY_FILES "${SPV_FILE}")
+endforeach()
 
-    # Add shader target
-    add_custom_target(Shaders DEPENDS ${SPIRV_SOURCE_FILES})
+add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
+add_dependencies(${PROJECT_NAME} Shaders)
 
-    # Ensure that depends on the SPIR-V files
-    add_dependencies(A03 Shaders)
+# ---------- Runtime layout: copy next to exe ----------
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${SHADERS_OUT_DIR}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
+        COMMENT "Copying shaders next to the executable..."
+        VERBATIM
+)
 
-    # Copy resources (textures, models, etc.) to the build directory
-    file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)
-    file(COPY ${CMAKE_SOURCE_DIR}/assets/models DESTINATION ${CMAKE_BINARY_DIR}/assets)
-
-elseif(WIN32)
-    # Windows specific configurations
-
-    # Set paths to libraries (modify these based on your SDK and library installation)
-    set(GLFW "D:/TOOL/Vulkan/libs/glfw-3.4.bin.WIN64")
-    set(GLM "D:/TOOL/Vulkan/libs//glm")
-    set(GLSLANG_VALIDATOR "D:/TOOL/Vulkan/Bin/glslangValidator.exe")
-
-
-    # List of directories to add to the include path
-    list(APPEND INCLUDE_DIRS "${GLFW}/include" ${GLM} headers)
-
-    # List of libraries to link to the executable
-    list(APPEND LINK_LIBS "${GLFW}/lib-mingw-w64/libglfw3.a")
-    file(GLOB_RECURSE SOURCES src/*.cpp)
-    file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
-
-    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-
-    find_package(Vulkan REQUIRED)
-
-    foreach(dir IN LISTS Vulkan_INCLUDE_DIR INCLUDE_DIRS)
-        target_include_directories(${PROJECT_NAME} PUBLIC ${dir})
-    endforeach()
-
-    foreach(lib IN LISTS Vulkan_LIBRARIES LINK_LIBS)
-        target_link_libraries(${PROJECT_NAME} ${lib})
-    endforeach()
-
-    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
-
-    # === Shader Compilation ===
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
-    file(GLOB GLSL_SOURCE_FILES "${CMAKE_SOURCE_DIR}/shaders/*.vert" "${CMAKE_SOURCE_DIR}/shaders/*.frag")
-
-    set(SPIRV_BINARY_FILES "")
-    foreach(GLSL ${GLSL_SOURCE_FILES})
-        get_filename_component(FILE_NAME ${GLSL} NAME)
-        set(SPV_FILE ${CMAKE_BINARY_DIR}/shaders/${FILE_NAME}.spv)
-
-        add_custom_command(
-                OUTPUT ${SPV_FILE}
-                COMMAND ${GLSLANG_VALIDATOR} -V ${GLSL} -o ${SPV_FILE}
-                DEPENDS ${GLSL}
-                COMMENT "Compiling shader: ${GLSL}"
-                VERBATIM
-        )
-
-        list(APPEND SPIRV_BINARY_FILES ${SPV_FILE})
-    endforeach()
-
-    add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
-    add_dependencies(${PROJECT_NAME} Shaders)
-
-    file(GLOB SHADER_SPV_FILES "${CMAKE_SOURCE_DIR}/shaders/*.spv")
-    file(COPY ${SHADER_SPV_FILES} DESTINATION ${CMAKE_BINARY_DIR}/shaders)
-    file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)
-    file(COPY ${CMAKE_SOURCE_DIR}/assets/models DESTINATION ${CMAKE_BINARY_DIR}/assets)
-elseif(UNIX AND NOT APPLE)
-    file(GLOB_RECURSE SOURCES src/*.cpp)
-    file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
-
-    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS}
-            include/modules/UBO.hpp)
-
-    find_package(Vulkan REQUIRED)
-    find_package(glfw3 REQUIRED)
-
-
-    find_package(glm REQUIRED)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
-
-    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
-    target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan glfw)
-
-    foreach(dir IN LISTS Vulkan_INCLUDE_DIR INCLUDE_DIRS)
-        target_include_directories(${PROJECT_NAME} PUBLIC ${dir})
-    endforeach()
-
-    foreach(lib IN LISTS Vulkan_LIBRARIES LINK_LIBS)
-        target_link_libraries(${PROJECT_NAME} ${lib})
-    endforeach()
-
-    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
-
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
-
-    file(GLOB GLSL_SOURCE_FILES "${CMAKE_SOURCE_DIR}/shaders/*.vert" "${CMAKE_SOURCE_DIR}/shaders/*.frag")
-
-    set(SPIRV_BINARY_FILES "")
-    foreach(GLSL ${GLSL_SOURCE_FILES})
-        get_filename_component(FILE_NAME ${GLSL} NAME_WE)
-        set(SPV_FILE ${CMAKE_BINARY_DIR}/shaders/${FILE_NAME}.spv)
-
-        add_custom_command(
-                OUTPUT ${SPV_FILE}
-                COMMAND GLSLANG_VALIDATOR -V ${GLSL} -o ${SPV_FILE}
-                DEPENDS ${GLSL}
-                COMMENT "Compiling shader: ${GLSL}"
-        )
-        list(APPEND SPIRV_BINARY_FILES ${SPV_FILE})
-    endforeach()
-
-    add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
-    add_dependencies(${PROJECT_NAME} Shaders)
-    add_executable(roads tools/roads.cpp)
-
-
-    file(GLOB SHADER_SPV_FILES "${CMAKE_SOURCE_DIR}/shaders/*.spv")
-    file(COPY ${SHADER_SPV_FILES} DESTINATION ${CMAKE_BINARY_DIR}/shaders)
-    file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)
-
-    file(COPY ${CMAKE_SOURCE_DIR}/assets/models DESTINATION ${CMAKE_BINARY_DIR}/assets)
-else()
-    message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
-endif()
-
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+        COMMENT "Copying assets next to the executable..."
+        VERBATIM
+)

@@ -87,20 +87,30 @@
   "textures": [
     { "id": "tRoad", "texture": "assets/textures/textures.png" },
     { "id": "tCity", "texture": "assets/textures/textures.png" },
-    { "id": "tUomo", "texture": "assets/textures/people/uomo/Ch01_1001_Diffuse.png" }
+    { "id": "tUomo", "texture": "assets/textures/people/uomo/Ch01_1001_Diffuse.png" },
+    { "id": "tAsphalt", "texture": "assets/textures/asphalt.png" },
+    { "id": "tGrass", "texture": "assets/textures/grass.jpg" },
+
+    { "id": "tTL_Red",     "texture": "assets/textures/textures_road_red.png" },
+    { "id": "tTL_Yellow",  "texture": "assets/textures/textures_road_yellow.png" },
+    { "id": "tTL_Green",   "texture": "assets/textures/textures_road_green.png" }
+
+
+
   ],
 
   "instances": [
     {
       "id": "ground",
       "model": "pln",
-      "texture": "tCity",
+      "texture": "tGrass",
       "transform": [
-        260, 0, 0, 0,
-        0, 1, 0, -0.12,
-        0, 0, 260, 0,
+        200, 0, 0, 0,
+        0, 1, 0, -0.15,
+        0, 0, 200, 0,
         0, 0, 0, 1
       ]
+
     },
 
     { "id": "C_xSW", "model": "r_cross", "texture": "tRoad", "transform": [ -1,0,0,-24, 0,1,0,0.02, 0,0,-1, 24, 0,0,0,1 ] },

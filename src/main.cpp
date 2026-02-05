@@ -16,6 +16,32 @@
 #include <unordered_set>
 #include <vector>
 #include <string>
+#include <iostream>
+#include <filesystem>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+// --------------------------------------------------
+// PATH UTILITIES (WINDOWS – RELATIVE TO EXECUTABLE)
+// --------------------------------------------------
+static std::filesystem::path GetExeDir() {
+#ifdef _WIN32
+    wchar_t buffer[MAX_PATH];
+    DWORD len = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+    if (len == 0 || len == MAX_PATH) {
+        return std::filesystem::current_path(); // fallback
+    }
+    return std::filesystem::path(buffer).parent_path();
+#else
+    return std::filesystem::current_path();
+#endif
+}
+
+static std::string PathRelToExe(const std::string& rel) {
+    return (GetExeDir() / rel).generic_string();
+}
 
 // -------------------------------
 // TEXT
@@ -59,6 +85,7 @@ protected:
     // collision control
     bool collisionMode = false; // optional toggle
     float hitDistance = 1.2f;   // how close cars need to be to "hit"
+
     // =========================
     // TRAFFIC
     // =========================
@@ -86,7 +113,7 @@ protected:
         int instId = -1;        // instance index
         Route walkRoute;        // walking path
         float s = 0.0f;         // distance along route [0..total)
-        float speed = 1.8f;     // walking speed (units/sec) ~1.8 m/s typical
+        float speed = 1.8f;     // walking speed (units/sec)
     };
 
     std::vector<CarState> Cars;
@@ -95,7 +122,7 @@ protected:
 
     float trafficTime = 0.0f;
     float lightPeriod = 10.0f;   // seconds per phase
-    float amberTime   = 1.0f;    // last 1s is "yellow" -> we still treat as red for simplicity
+    float amberTime   = 2.0f;    // last 1s is "yellow"
 
     static glm::mat4 MakeCarTRS(const glm::vec3& pos, float yawRad, float yawOffsetRad) {
         glm::mat4 M(1.0f);
@@ -160,7 +187,6 @@ protected:
     }
 
     static float distAhead(const Route& R, float sFrom, float sTo) {
-        // distance going forward along route from sFrom to sTo
         float a = wrapPos(sFrom, R.total);
         float b = wrapPos(sTo,   R.total);
         float d = b - a;
@@ -169,12 +195,9 @@ protected:
     }
 
     bool lightGreenForRoute(const Route& R) const {
-        // Phase 0: horizontal green, Phase 1: vertical green
-        // We'll decide "horizontal" if the first segment is along X more than Z.
         float phaseT = std::fmod(trafficTime, 2.0f * lightPeriod);
         bool horizontalGreen = phaseT < lightPeriod;
 
-        // treat last amberTime as red (more stable)
         float local = std::fmod(trafficTime, lightPeriod);
         bool inAmber = local > (lightPeriod - amberTime);
 
@@ -186,15 +209,13 @@ protected:
         if (Cars.empty()) return;
         trafficTime += dt;
         int colroute = 1;
-        // Because we want stable velocity per car, we keep it in a member array.
-        // Easiest: create it lazily with same size as Cars.
+
         static std::vector<float> vel;
         if (vel.size() != Cars.size()) {
             vel.assign(Cars.size(), 0.0f);
             for (size_t i = 0; i < Cars.size(); i++) vel[i] = Cars[i].speed;
         }
 
-        // Group cars by route
         std::vector<std::vector<int>> byRoute(Routes.size());
         for (int i = 0; i < (int)Cars.size(); i++) byRoute[Cars[i].routeId].push_back(i);
 
@@ -214,8 +235,9 @@ protected:
             std::sort(idxs.begin(), idxs.end(), [&](int a, int b){
                 return Cars[a].s < Cars[b].s;
             });
-            //collision logic is seperated from the normal one
+
             if (rid==colroute && collisionMode) continue;
+
             for (int k = 0; k < (int)idxs.size(); k++) {
                 int ci = idxs[k];
                 int fi = idxs[(k + 1) % idxs.size()];
@@ -265,11 +287,11 @@ protected:
                 SC.I[c.inst].Wm = MakeCarTRS(p, yaw, c.yawOffset);
             }
         }
-        //crush logic
+
+        // crush logic
         if (collisionMode) {
             auto& idxscrush = byRoute[colroute];
             if (idxscrush.size() >= 2) {
-                // 1. Setup and Sorting
                 std::sort(idxscrush.begin(), idxscrush.end(), [&](int a, int b){
                     return Cars[a].s < Cars[b].s;
                 });
@@ -280,35 +302,24 @@ protected:
                 CarState& front = Cars[frontIdx];
                 const Route& R = Routes[colroute];
 
-                // 2. Calculate current gap
                 float gap = distAhead(R, rear.s, front.s) - front.length;
 
                 float desiredRear = rear.speed;
                 float desiredFront = front.speed;
 
-                // 3. The Logic State Machine
-
                 if (gap > 20.0f && gap < 60.0f) {
-                    // STATE A: Gap is too long -> Teleport rear close to front
-                    // We place it exactly 5 meters behind the front car
                     rear.s = wrapPos(front.s - (front.length + 5.0f), R.total);
-                    desiredRear = front.speed; // Match speed immediately after teleport
+                    desiredRear = front.speed;
                 }
                 else if (gap < front.length / 2) {
-                    // STATE B: Crush/Hit (Gap smaller than car length/touching)
-                    // Front car gets a massive boost, Rear car slams brakes
                     desiredFront = front.speed + 20.0f;
                     desiredRear  -= 5.0f;
                 }
                 else {
-                    // STATE C: Gap is larger than 0 but less than "too long"
-                    // Rear car speeds up to chase, Front moves slowly to be caught
                     desiredRear = rear.speed + 15.0f;
                     desiredFront -= 5.0f;
                 }
 
-                // 4. Apply Physics (Smoothing the speed changes)
-                // Use high brake for the 'crush' feel, normal accel for the 'chase'
                 float vR = vel[rearIdx];
                 if (vR < desiredRear) vR = std::min(desiredRear, vR + 50.0f * dt);
                 else                  vR = std::max(desiredRear, vR - 50.0f * dt);
@@ -319,8 +330,6 @@ protected:
                 else                   vF = std::max(desiredFront, vF - 50.0f * dt);
                 vel[frontIdx] = vF;
 
-
-                // 5. Update positions and visual matrices
                 rear.s = wrapPos(rear.s + vel[rearIdx] * dt, R.total);
                 front.s = wrapPos(front.s + vel[frontIdx] * dt, R.total);
 
@@ -337,18 +346,15 @@ protected:
         for (auto& ped : Pedestrians) {
             if (ped.instId < 0 || ped.walkRoute.total <= 0.0001f) continue;
 
-            // Advance along the walking route
             ped.s = wrapPos(ped.s + ped.speed * dt, ped.walkRoute.total);
 
-            // Get position and yaw on the route
             glm::vec3 pos = posOnRoute(ped.walkRoute, ped.s);
             float yaw = yawAlongRoute(ped.walkRoute, ped.s);
 
-            // Update instance world matrix: position + rotation
             glm::mat4 M(1.0f);
             M = glm::translate(M, pos);
             M = glm::rotate(M, yaw, glm::vec3(0, 1, 0));
-            
+
             SC.I[ped.instId].Wm = M;
         }
     }
@@ -358,8 +364,6 @@ protected:
         Routes.clear();
         trafficTime = 0.0f;
         const float offset = 3.0f;
-        // === LANE-CORRECT loops (the ones you said work) ===
-        // Inner is around +/-20, Outer around +/-68
 
         Route innerCWS;
         innerCWS.wp = { {-20,0.3f,-20},
@@ -369,7 +373,6 @@ protected:
         innerCWS.isHorizontalFirst = true;
         buildRoute(innerCWS);
 
-        //route of three blocks in the middle
         Route threeCWF;
         threeCWF.wp = {
             {-68-offset,0.3f,-20-offset},
@@ -379,8 +382,6 @@ protected:
         };
         threeCWF.isHorizontalFirst = true;
         buildRoute(threeCWF);
-
-
 
         Route innerCCWS;
         innerCCWS.wp={{-20.0f-2*offset,0.3f,-20.0f-2*offset},
@@ -398,7 +399,6 @@ protected:
         innerCCWF.isHorizontalFirst = true;
         buildRoute(innerCCWF);
 
-
         Route outerCWS;
         outerCWS.wp = { {-68,0.3f,-68},
             {68,0.3f,-68},
@@ -407,7 +407,6 @@ protected:
         outerCWS.isHorizontalFirst = true;
         buildRoute(outerCWS);
 
-        //H shaped route
         Route HCWF;
         HCWF.wp = {
             {-68-offset,0.3f,-68-offset},
@@ -426,8 +425,6 @@ protected:
         HCWF.isHorizontalFirst = true;
         buildRoute(HCWF);
 
-
-
         Route outerCCWS;
         outerCCWS.wp={{-68.0f-2*offset,0.3f,-68.0f-2*offset},
             {-68.0f-2*offset,0.3f,68.0f+2*offset},
@@ -444,16 +441,16 @@ protected:
         outerCCWF.isHorizontalFirst = true;
         buildRoute(outerCCWF);
 
-        Routes.push_back(innerCWS);   // routeId 0
-        Routes.push_back(threeCWF);   // routeId 1
-        Routes.push_back(innerCCWS);  // routeId 2
-        Routes.push_back(innerCCWF);  // routeId 3
-        Routes.push_back(outerCWS);   // routeId 4
-        Routes.push_back(HCWF);   // routeId 5
-        Routes.push_back(outerCCWS);  // routeId 6
-        Routes.push_back(outerCCWF);  // routeId 7
+        Routes.push_back(innerCWS);   // 0
+        Routes.push_back(threeCWF);   // 1
+        Routes.push_back(innerCCWS);  // 2
+        Routes.push_back(innerCCWF);  // 3
+        Routes.push_back(outerCWS);   // 4
+        Routes.push_back(HCWF);       // 5
+        Routes.push_back(outerCCWS);  // 6
+        Routes.push_back(outerCCWF);  // 7
 
-        float yawOffset = 0.0f; // if cars face wrong, set +90/-90/180
+        float yawOffset = 0.0f;
 
         std::vector<std::string> carModelIds = {
             "aid_truck","ambulance","black_car","blue_jeep","croll_car","fire_truck",
@@ -472,10 +469,6 @@ protected:
 
             glm::vec3 p = glm::vec3(SC.I[i].Wm[3]);
 
-            int ring = (std::abs(p.x) > 45.0f || std::abs(p.z) > 45.0f) ? 1 : 0; // 0 inner, 1 outer
-            int dir = ((i * 37) % 2); // 0 cw, 1 ccw
-
-            //int routeId = (ring == 0) ? (dir == 0 ? 0 : 1) : (dir == 0 ? 2 : 3);
             int routeId = i % 7;
             const Route& R = Routes[routeId];
 
@@ -484,12 +477,9 @@ protected:
             c.routeId = routeId;
             c.yawOffset = yawOffset;
 
-            // base speed variety
             c.speed = 7.0f + float((i * 53) % 70) / 10.0f; // 7..14
             c.length = 3.0f;
 
-            // project car to nearest point (approx): pick closest waypoint segment start via closest s among waypoints
-            // simple & stable: find nearest waypoint s and use it as start, plus a stagger
             int bestWp = 0;
             float bestD = 1e30f;
             for (int w = 0; w < (int)R.wp.size(); w++) {
@@ -498,8 +488,6 @@ protected:
                 if (dd < bestD) { bestD = dd; bestWp = w; }
             }
             c.s = R.cumLen[bestWp];
-
-            // stagger so they don’t stack at start
             c.s = wrapPos(c.s + float((i * 19) % 40), R.total);
 
             Cars.push_back(c);
@@ -508,8 +496,7 @@ protected:
 
     void initPedestrian() {
         Pedestrians.clear();
-        
-        // Find all pedestrian instances by looking for "pedestrians" in their IDs
+
         for (int i = 0; i < SC.InstanceCount; i++) {
             if (SC.I[i].id != nullptr) {
                 std::string instId = *SC.I[i].id;
@@ -518,43 +505,39 @@ protected:
                     ped.instId = i;
                     ped.speed = 1.8f;
                     ped.s = 0.0f;
-                    
-                    // Define route based on instance ID
+
                     if (instId.find("center_up") != std::string::npos) {
-                        // Center up block (north area)
                         ped.walkRoute.wp = {
-                            glm::vec3(-17.0f, 0.3f, -65.0f),   // NW corner
-                            glm::vec3( 17.0f, 0.3f, -65.0f),   // NE corner
-                            glm::vec3( 17.0f, 0.3f, -32.0f),   // SE corner
-                            glm::vec3(-17.0f, 0.3f, -32.0f)    // SW corner
+                            glm::vec3(-17.0f, 0.3f, -65.0f),
+                            glm::vec3( 17.0f, 0.3f, -65.0f),
+                            glm::vec3( 17.0f, 0.3f, -32.0f),
+                            glm::vec3(-17.0f, 0.3f, -32.0f)
                         };
                     } else if (instId.find("center_left") != std::string::npos) {
-                        // Center left block (west area)
                         ped.walkRoute.wp = {
-                            glm::vec3(-65.0f, 0.3f, -17.0f),   // NW corner
-                            glm::vec3(-32.0f, 0.3f, -17.0f),   // NE corner
-                            glm::vec3(-32.0f, 0.3f,  17.0f),   // SE corner
-                            glm::vec3(-65.0f, 0.3f,  17.0f)    // SW corner
+                            glm::vec3(-65.0f, 0.3f, -17.0f),
+                            glm::vec3(-32.0f, 0.3f, -17.0f),
+                            glm::vec3(-32.0f, 0.3f,  17.0f),
+                            glm::vec3(-65.0f, 0.3f,  17.0f)
                         };
                     } else {
-                        // Default: center block (main area)
                         ped.walkRoute.wp = {
-                            glm::vec3(-17.0f, 0.3f, -17.0f),   // NW corner
-                            glm::vec3( 17.0f, 0.3f, -17.0f),   // NE corner
-                            glm::vec3( 17.0f, 0.3f,  17.0f),   // SE corner
-                            glm::vec3(-17.0f, 0.3f,  17.0f)    // SW corner
+                            glm::vec3(-17.0f, 0.3f, -17.0f),
+                            glm::vec3( 17.0f, 0.3f, -17.0f),
+                            glm::vec3( 17.0f, 0.3f,  17.0f),
+                            glm::vec3(-17.0f, 0.3f,  17.0f)
                         };
                     }
-                    
+
                     buildRoute(ped.walkRoute);
                     Pedestrians.push_back(ped);
-                    
-                    std::cout << "[Pedestrian] Initialized \"" << instId << "\" at instance " 
+
+                    std::cout << "[Pedestrian] Initialized \"" << instId << "\" at instance "
                               << ped.instId << " with route length " << ped.walkRoute.total << " units\n";
                 }
             }
         }
-        
+
         if (Pedestrians.empty()) {
             std::cout << "[Pedestrian] Warning: No pedestrian instances found\n";
         }
@@ -566,7 +549,7 @@ protected:
         windowHeight = 800;
         windowTitle  = "A03 – City Traffic (Explore)";
         windowResizable = GLFW_TRUE;
-        initialBackgroundColor = {0.55f, 0.75f, 0.95f, 1.0f};
+        initialBackgroundColor = {0.90f, 0.70f, 0.55f, 1.0f};
 
         uniformBlocksInPool = 8000;
         texturesInPool      = 1024;
@@ -580,11 +563,16 @@ protected:
     }
 
     void localInit() override {
+        // Just to be sure where we load from
+        std::cout << "Executable dir: " << GetExeDir().string() << std::endl;
+
         DSL.init(this, {
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
-            {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT},
-            {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS}
-        });
+  {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
+  {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}, // base
+  {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
+
+});
+
 
         VD.init(this,
             {{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}},
@@ -595,16 +583,17 @@ protected:
             }
         );
 
-        P.init(this, &VD,
-               "shaders/HalfLambertVert.vert.spv",
-               "shaders/HalfLambertFrag.frag.spv",
-               {&DSL});
+        const std::string vert = PathRelToExe("shaders/HalfLambertVert.vert.spv");
+        const std::string frag = PathRelToExe("shaders/HalfLambertFrag.frag.spv");
+
+        P.init(this, &VD, vert.c_str(), frag.c_str(), {&DSL});
         P.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL,
                               VK_POLYGON_MODE_FILL,
                               VK_CULL_MODE_NONE,
                               false);
 
-        SC.init(this, &VD, DSL, P, "assets/models/city_scene.json");
+        const std::string scene = PathRelToExe("assets/models/city_scene.json");
+        SC.init(this, &VD, DSL, P, scene.c_str());
 
         if (SC.InstanceIds.count("prm")) {
             int iprm = SC.InstanceIds["prm"];
@@ -663,16 +652,12 @@ protected:
         glm::vec3 m(0.0f), r(0.0f);
         bool fire = false;
         getSixAxis(deltaT, m, r, fire);
-        //accident
+
+        // Toggle collision mode with T
         static bool tWasDown = false;
         bool tDown = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
-
-        if (tDown && !tWasDown) {
-            collisionMode = !collisionMode;  // set flag for updateCars
-        }
+        if (tDown && !tWasDown) collisionMode = !collisionMode;
         tWasDown = tDown;
-
-
 
         updateCars(deltaT);
         updatePedestrian(deltaT);
@@ -691,7 +676,7 @@ protected:
         if (glfwGetKey(window, GLFW_KEY_Q)) CamDist -= zoomSpeed * deltaT;
         if (glfwGetKey(window, GLFW_KEY_E)) CamDist += zoomSpeed * deltaT;
 
-        CamDist = glm::clamp(CamDist, 3.0f, 2000.0f);
+        CamDist = glm::clamp(CamDist, 3.0f, 250.0f);
 
         glm::vec3 forward, right, up;
         cameraBasis(forward, right, up);
@@ -709,6 +694,10 @@ protected:
         if (glfwGetKey(window, GLFW_KEY_A)) CamTarget += groundR * flySpeed * deltaT;
         if (glfwGetKey(window, GLFW_KEY_Z)) CamTarget.y -= flySpeed * 0.8f * deltaT;
         if (glfwGetKey(window, GLFW_KEY_X)) CamTarget.y += flySpeed * 0.8f * deltaT;
+
+        CamTarget.x = glm::clamp(CamTarget.x, -90.0f, 90.0f);
+        CamTarget.z = glm::clamp(CamTarget.z, -90.0f, 90.0f);
+
 
         if (glfwGetKey(window, GLFW_KEY_R)) {
             if (SC.InstanceIds.count("prm")) {
@@ -740,19 +729,34 @@ protected:
         );
 
         GlobalUniformBufferObject gubo{};
-        // gubo.lightDir   = glm::normalize(glm::vec3(-1.0f, -1.0f, -0.5f));
-        // gubo.lightColor = glm::vec4(1, 1, 1, 1);
-        //simulate sunsetlight to make the showcase more obvious
         gubo.lightDir   = glm::vec4(glm::normalize(glm::vec3(-1.0f, -0.2f, -0.8f)), 0.0f);
         gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         gubo.eyePos     = CamPos;
         gubo.eyeDir     = glm::vec4(glm::normalize(CamTarget - CamPos), 0.0f);
 
         GlobalUniformBufferObject guboLocal = gubo;
+
+        // -------------------------------
+        // TRAFFIC LIGHT STATE (GLOBAL)
+        // -------------------------------
+        int state = 0; // 0=RED, 1=YELLOW, 2=GREEN
+
+        float phaseT = std::fmod(trafficTime, 2.0f * lightPeriod);
+        bool horizontalGreen = phaseT < lightPeriod;
+
+        float localT = std::fmod(trafficTime, lightPeriod);
+        bool inAmber = localT > (lightPeriod - amberTime);
+
+        if (inAmber) state = 1;                 // yellow
+        else         state = horizontalGreen ? 2 : 0;  // green or red
+
+        guboLocal.traffic = glm::ivec4(state, 0, 0, 0);
+
+
         UniformBufferObject ubo{};
 
-        // ===== UPDATE ANIMATION TIME FOR ALL INSTANCES =====
         std::unordered_set<int> updatedSkinnedModels;
+
         auto sampleTrack = [](const AnimationTrack& track, float time) -> AnimationKeyframe {
             AnimationKeyframe out{};
             out.translation = glm::vec3(0.0f);
@@ -781,21 +785,17 @@ protected:
         };
 
         for (int i = 0; i < SC.InstanceCount; i++) {
-            // Check if this instance has an animated model
             int modelIdx = SC.I[i].Mid;
-            if (modelIdx >= 0 && modelIdx < SC.ModelCount && 
+            if (modelIdx >= 0 && modelIdx < SC.ModelCount &&
                 !SC.M[modelIdx]->animations.empty()) {
-				
-                // Increment animation time
+
                 SC.I[i].animTime += deltaT;
-				
-                // Loop animation
+
                 float duration = SC.M[modelIdx]->animations[0].duration;
                 if (SC.I[i].animTime > duration) {
                     SC.I[i].animTime = std::fmod(SC.I[i].animTime, duration);
                 }
 
-                // CPU skinning update (only once per model per frame)
                 Model* model = SC.M[modelIdx];
                 if (model->hasSkinning && !updatedSkinnedModels.count(modelIdx)) {
                     const auto& clip = model->animations[0];
@@ -865,13 +865,6 @@ protected:
                         model->updateSkinnedVertices(jointMatrices);
                         updatedSkinnedModels.insert(modelIdx);
                     }
-                }
-
-                static bool logged = false;
-                if (!logged) {
-                    std::cout << "[Animation] Model " << modelIdx << " animation time: " 
-                              << SC.I[i].animTime << "s / " << duration << "s\n";
-                    logged = true;
                 }
             }
         }

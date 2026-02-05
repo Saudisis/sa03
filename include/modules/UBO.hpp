@@ -13,4 +13,8 @@ struct GlobalUniformBufferObject {
     alignas(16) glm::vec4 lightColor;
     alignas(16) glm::vec3 eyePos;
     alignas(16) glm::vec4 eyeDir;
+
+    //  traffic light state
+    // 0 = RED, 1 = YELLOW, 2 = GREEN
+    alignas(16) glm::ivec4 traffic; // traffic.x = state (rest unused)
 };
