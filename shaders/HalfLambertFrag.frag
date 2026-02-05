@@ -70,10 +70,10 @@ void main() {
         float sGreen  = (gubo.traffic.x == 2) ? isGreen  : 0.0;
 
         vec3 lit = off;
-        lit = mix(lit, onRed,    sRed);
-        lit = mix(lit, onYellow, sYellow);
-        lit = mix(lit, onGreen,  sGreen);
-
+        //lit = mix(lit, onRed,    sRed);
+        //lit = mix(lit, onYellow, sYellow);
+        //lit = mix(lit, onGreen,  sGreen);
+        lit = (gubo.traffic.x == 0) ? onRed : ((gubo.traffic.x == 1) ? onYellow : onGreen);
         albedo = lit;
     }
 
