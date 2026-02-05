@@ -86,6 +86,9 @@ protected:
     bool collisionMode = false; // optional toggle
     float hitDistance = 1.2f;   // how close cars need to be to "hit"
 
+    //traffic light
+    int trafficstate = 0; // 0=RED, 1=YELLOW, 2=GREEN
+
     // =========================
     // TRAFFIC
     // =========================
@@ -224,7 +227,7 @@ protected:
             if (idxs.empty()) continue;
 
             const Route& R = Routes[rid];
-            bool green = lightGreenForRoute(R);
+            bool green = (trafficstate != 0);
 
             const float minGap = 2.5f;
             const float lookStop = 6.0f;
@@ -266,12 +269,7 @@ protected:
                 if (dToWp < 0.0f) dToWp += R.total;
 
                 if (!green) {
-                    float dToStop = dToWp - stopLine;
-                    if (dToStop < lookStop) {
-                        float t = glm::clamp(dToStop / lookStop, 0.0f, 1.0f);
-                        desired = std::min(desired, baseMax * t);
-                    }
-                    if (dToStop <= 0.2f) desired = 0.0f;
+                    desired = 0.0f;
                 }
 
                 float v = vel[ci];
@@ -739,7 +737,7 @@ protected:
         // -------------------------------
         // TRAFFIC LIGHT STATE (GLOBAL)
         // -------------------------------
-        int state = 0; // 0=RED, 1=YELLOW, 2=GREEN
+
 
         float phaseT = std::fmod(trafficTime, 2.0f * lightPeriod);
         bool horizontalGreen = phaseT < lightPeriod;
@@ -747,10 +745,10 @@ protected:
         float localT = std::fmod(trafficTime, lightPeriod);
         bool inAmber = localT > (lightPeriod - amberTime);
 
-        if (inAmber) state = 1;                 // yellow
-        else         state = horizontalGreen ? 2 : 0;  // green or red
+        if (inAmber) trafficstate = 1;                 // yellow
+        else         trafficstate = horizontalGreen ? 2 : 0;  // green or red
 
-        guboLocal.traffic = glm::ivec4(state, 0, 0, 0);
+        guboLocal.traffic = glm::ivec4(trafficstate, 0, 0, 0);
 
 
         UniformBufferObject ubo{};
