@@ -270,6 +270,33 @@
       "scale": [1.0, 1.0, 1.0]
     },
 
+    {
+      "id": "pedestrians_crossing_right",
+      "model": "uomo",
+      "texture": "tUomo",
+      "points": [[50,0.3,0]],
+      "rotY": 0,
+      "scale": [1.0, 1.0, 1.0]
+    },
+
+    {
+      "id": "pedestrians_crossing_up_1",
+      "model": "uomo",
+      "texture": "tUomo",
+      "points": [[-45,0.3,-50]],
+      "rotY": 0,
+      "scale": [1.0, 1.0, 1.0]
+    },
+
+    {
+      "id": "pedestrians_crossing_up_2",
+      "model": "uomo",
+      "texture": "tUomo",
+      "points": [[-35,0.3,-50]],
+      "rotY": 0,
+      "scale": [1.0, 1.0, 1.0]
+    },
+
 
     {
       "id": "center_down_front",

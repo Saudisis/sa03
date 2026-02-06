@@ -47,9 +47,10 @@ static std::string PathRelToExe(const std::string& rel) {
 // TEXT
 // -------------------------------
 std::vector<SingleText> outText = {
-    {1, {"City Traffic Simulation",
-         "WASD move | QE up/down | Arrows/Mouse orbit | IJKL pan | R reset | ESC quit",
-         "", ""}, 0, 0}
+    {1, {"City Traffic Simulation - [TAB] Change Mode",
+         "🖱️  Right Click: Rotate | Wheel: Zoom | Middle: Pan",
+         "⌨️  WASD: Move | QE: Height | Shift: Fast | Ctrl: Slow | R: Reset",
+         ""}, 0, 0}
 };
 
 struct Vertex {
@@ -81,6 +82,27 @@ protected:
     float orbitSpeed = glm::radians(120.0f);
     float panSpeed   = 120.0f;
     float flySpeed   = 140.0f;
+
+    // Camera modes
+    enum CameraMode { ORBIT, FREE, BIRD };
+    CameraMode cameraMode = ORBIT;
+    const char* cameraModeNames[3] = {"Orbit", "Free", "Bird"};
+
+    // Smooth transitions
+    glm::vec3 smoothCamPos = CamPos;
+    glm::vec3 smoothCamTarget = CamTarget;
+    float smoothYaw = CamYaw;
+    float smoothPitch = CamPitch;
+    float smoothDist = CamDist;
+    float smoothFactor = 8.0f; // Higher = more responsive
+
+    // Mouse control
+    double lastMouseX = 0.0;
+    double lastMouseY = 0.0;
+    bool rightMousePressed = false;
+    bool middleMousePressed = false;
+    float mouseSensitivity = 0.003f;
+    float mouseZoomSpeed = 10.0f;
 
     // collision control
     bool collisionMode = false; // optional toggle
@@ -513,12 +535,27 @@ protected:
                         };
                     } else if (instId.find("center_left") != std::string::npos) {
                         ped.walkRoute.wp = {
-                            glm::vec3(-65.0f, 0.3f, -17.0f),
-                            glm::vec3(-32.0f, 0.3f, -17.0f),
-                            glm::vec3(-32.0f, 0.3f,  17.0f),
-                            glm::vec3(-65.0f, 0.3f,  17.0f)
+                            glm::vec3(-70.0f, 0.3f, -17.0f),
+                            glm::vec3(-45.0f, 0.3f, -17.0f),
+                            glm::vec3(-45.0f, 0.3f,  17.0f),
+                            glm::vec3(-70.0f, 0.3f,  17.0f)
                         };
-                    } else {
+                    } else if (instId.find("crossing_right") != std::string::npos) {
+                        ped.walkRoute.wp = {
+                            glm::vec3( 31.0f, 0.3f, -17.0f),
+                            glm::vec3( 65.0f, 0.3f, -17.0f),
+                            glm::vec3( 65.0f, 0.3f,  65.0f),
+                            glm::vec3( 31.0f, 0.3f,  65.0f)
+                        };                    
+                    } else if (instId.find("crossing_up") != std::string::npos) {
+                        // Crossing up: walks through up_left and center_up
+                        ped.walkRoute.wp = {
+                            glm::vec3(-70.0f, 0.3f, -65.0f),   // NW corner (up_left)
+                            glm::vec3( 17.0f, 0.3f, -65.0f),   // NE corner (center_up)
+                            glm::vec3( 17.0f, 0.3f, -31.0f),   // SE corner (center_up)
+                            glm::vec3(-70.0f, 0.3f, -31.0f)    // SW corner (up_left)
+                        };                    } 
+                        else {
                         ped.walkRoute.wp = {
                             glm::vec3(-17.0f, 0.3f, -17.0f),
                             glm::vec3( 17.0f, 0.3f, -17.0f),
@@ -563,6 +600,14 @@ protected:
     void localInit() override {
         // Just to be sure where we load from
         std::cout << "Executable dir: " << GetExeDir().string() << std::endl;
+
+        // Setup mouse callbacks
+        glfwSetWindowUserPointer(window, this);
+        glfwSetScrollCallback(window, [](GLFWwindow* w, double xoff, double yoff) {
+            auto* app = static_cast<A03*>(glfwGetWindowUserPointer(w));
+            app->smoothDist -= (float)yoff * app->mouseZoomSpeed;
+            app->smoothDist = glm::clamp(app->smoothDist, 3.0f, 250.0f);
+        });
 
         DSL.init(this, {
   {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
@@ -636,10 +681,11 @@ protected:
     }
 
     void cameraBasis(glm::vec3 &forward, glm::vec3 &right, glm::vec3 &up) {
+        // Use smooth values for more fluid calculations
         forward = glm::normalize(glm::vec3(
-            cos(CamPitch) * sin(CamYaw),
-            sin(CamPitch),
-            cos(CamPitch) * cos(CamYaw)
+            cos(smoothPitch) * sin(smoothYaw),
+            sin(smoothPitch),
+            cos(smoothPitch) * cos(smoothYaw)
         ));
         right = glm::normalize(glm::cross(forward, glm::vec3(0, 1, 0)));
         up    = glm::normalize(glm::cross(right, forward));
@@ -657,63 +703,149 @@ protected:
         if (tDown && !tWasDown) collisionMode = !collisionMode;
         tWasDown = tDown;
 
+        // Toggle camera mode with TAB
+        static bool tabWasDown = false;
+        bool tabDown = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
+        if (tabDown && !tabWasDown) {
+            cameraMode = (CameraMode)((cameraMode + 1) % 3);
+            std::cout << "📹 Camera Mode: " << cameraModeNames[cameraMode] << std::endl;
+        }
+        tabWasDown = tabDown;
+
+        // Speed modifiers
+        float speedMultiplier = 1.0f;
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT)) {
+            speedMultiplier = 2.5f; // Fast mode
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL)) {
+            speedMultiplier = 0.3f; // Slow mode
+        }
+
+        // Mouse input
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+        double mouseDX = mouseX - lastMouseX;
+        double mouseDY = mouseY - lastMouseY;
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+
+        // Right mouse button for orbit
+        bool rightMouseNow = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+        if (rightMouseNow && rightMousePressed) {
+            smoothYaw += (float)mouseDX * mouseSensitivity;
+            smoothPitch -= (float)mouseDY * mouseSensitivity;
+        }
+        rightMousePressed = rightMouseNow;
+
+        // Middle mouse button for pan
+        bool middleMouseNow = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
+        if (middleMouseNow && middleMousePressed) {
+            glm::vec3 forward, right, up;
+            cameraBasis(forward, right, up);
+            glm::vec3 groundR = glm::normalize(glm::vec3(right.x, 0.0f, right.z));
+            glm::vec3 groundF = glm::normalize(glm::vec3(forward.x, 0.0f, forward.z));
+            smoothCamTarget -= groundR * (float)mouseDX * panSpeed * 0.02f * speedMultiplier;
+            smoothCamTarget -= groundF * (float)mouseDY * panSpeed * 0.02f * speedMultiplier;
+        }
+        middleMousePressed = middleMouseNow;
+
         updateCars(deltaT);
         updatePedestrian(deltaT);
 
-        if (glfwGetKey(window, GLFW_KEY_LEFT))  CamYaw  -= orbitSpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_RIGHT)) CamYaw  += orbitSpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_UP))    CamPitch += orbitSpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_DOWN))  CamPitch -= orbitSpeed * deltaT;
+        // Keyboard orbit controls
+        if (glfwGetKey(window, GLFW_KEY_LEFT))  smoothYaw  -= orbitSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_RIGHT)) smoothYaw  += orbitSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_UP))    smoothPitch += orbitSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_DOWN))  smoothPitch -= orbitSpeed * deltaT * speedMultiplier;
 
-        CamYaw   += orbitSpeed * deltaT * r.y;
-        CamPitch -= orbitSpeed * deltaT * r.x;
+        smoothYaw   += orbitSpeed * deltaT * r.y;
+        smoothPitch -= orbitSpeed * deltaT * r.x;
 
-        CamPitch = glm::clamp(CamPitch, glm::radians(8.0f), glm::radians(85.0f));
+        smoothPitch = glm::clamp(smoothPitch, glm::radians(8.0f), glm::radians(85.0f));
 
-        CamDist -= zoomSpeed * deltaT * m.y;
-        if (glfwGetKey(window, GLFW_KEY_Q)) CamDist -= zoomSpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_E)) CamDist += zoomSpeed * deltaT;
+        // Zoom controls
+        smoothDist -= zoomSpeed * deltaT * m.y;
+        if (glfwGetKey(window, GLFW_KEY_Q)) smoothDist -= zoomSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_E)) smoothDist += zoomSpeed * deltaT * speedMultiplier;
 
-        CamDist = glm::clamp(CamDist, 3.0f, 250.0f);
+        smoothDist = glm::clamp(smoothDist, 3.0f, 250.0f);
 
         glm::vec3 forward, right, up;
         cameraBasis(forward, right, up);
         glm::vec3 groundF = glm::normalize(glm::vec3(forward.x, 0.0f, forward.z));
         glm::vec3 groundR = glm::normalize(glm::vec3(right.x,   0.0f, right.z));
 
-        if (glfwGetKey(window, GLFW_KEY_I)) CamTarget += groundF * panSpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_K)) CamTarget -= groundF * panSpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_J)) CamTarget -= groundR * panSpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_L)) CamTarget += groundR * panSpeed * deltaT;
+        // Pan controls (IJKL)
+        if (glfwGetKey(window, GLFW_KEY_I)) smoothCamTarget += groundF * panSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_K)) smoothCamTarget -= groundF * panSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_J)) smoothCamTarget -= groundR * panSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_L)) smoothCamTarget += groundR * panSpeed * deltaT * speedMultiplier;
 
-        if (glfwGetKey(window, GLFW_KEY_S)) CamTarget += groundF * flySpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_W)) CamTarget -= groundF * flySpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_D)) CamTarget -= groundR * flySpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_A)) CamTarget += groundR * flySpeed * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_Z)) CamTarget.y -= flySpeed * 0.8f * deltaT;
-        if (glfwGetKey(window, GLFW_KEY_X)) CamTarget.y += flySpeed * 0.8f * deltaT;
+        // Movement controls (WASD)
+        float moveSpeed = (cameraMode == FREE) ? flySpeed * 1.5f : flySpeed;
+        if (glfwGetKey(window, GLFW_KEY_W)) smoothCamTarget -= groundF * moveSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_S)) smoothCamTarget += groundF * moveSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_A)) smoothCamTarget += groundR * moveSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_D)) smoothCamTarget -= groundR * moveSpeed * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_Z)) smoothCamTarget.y -= flySpeed * 0.8f * deltaT * speedMultiplier;
+        if (glfwGetKey(window, GLFW_KEY_X)) smoothCamTarget.y += flySpeed * 0.8f * deltaT * speedMultiplier;
 
-        CamTarget.x = glm::clamp(CamTarget.x, -90.0f, 90.0f);
-        CamTarget.z = glm::clamp(CamTarget.z, -90.0f, 90.0f);
+        // Camera mode specific constraints
+        if (cameraMode == BIRD) {
+            smoothPitch = glm::clamp(smoothPitch, glm::radians(60.0f), glm::radians(89.0f));
+            smoothCamTarget.y = glm::max(smoothCamTarget.y, 0.0f);
+        }
+        
+        smoothCamTarget.x = glm::clamp(smoothCamTarget.x, -90.0f, 90.0f);
+        smoothCamTarget.z = glm::clamp(smoothCamTarget.z, -90.0f, 90.0f);
 
 
+        // Reset camera
         if (glfwGetKey(window, GLFW_KEY_R)) {
             if (SC.InstanceIds.count("prm")) {
                 int iprm = SC.InstanceIds["prm"];
-                CamTarget = glm::vec3(SC.I[iprm].Wm[3]);
+                smoothCamTarget = glm::vec3(SC.I[iprm].Wm[3]);
             } else {
-                CamTarget = glm::vec3(0, 0, 0);
+                smoothCamTarget = glm::vec3(0, 0, 0);
             }
-            CamYaw   = glm::radians(45.0f);
-            CamPitch = glm::radians(50.0f);
-            CamDist  = 80.0f;
+            smoothYaw   = glm::radians(45.0f);
+            smoothPitch = glm::radians(50.0f);
+            smoothDist  = 80.0f;
         }
 
+        // Apply smooth transitions
+        float smoothSpeed = smoothFactor * deltaT;
+        CamYaw = glm::mix(CamYaw, smoothYaw, smoothSpeed);
+        CamPitch = glm::mix(CamPitch, smoothPitch, smoothSpeed);
+        CamDist = glm::mix(CamDist, smoothDist, smoothSpeed);
+        CamTarget = glm::mix(CamTarget, smoothCamTarget, smoothSpeed);
+
+        // Calculate camera position based on mode
         glm::vec3 offset;
-        offset.x = CamDist * cos(CamPitch) * sin(CamYaw);
-        offset.y = CamDist * sin(CamPitch);
-        offset.z = CamDist * cos(CamPitch) * cos(CamYaw);
+        if (cameraMode == FREE) {
+            // First-person style: camera closer to target
+            float freeDist = glm::min(CamDist * 0.3f, 15.0f);
+            offset.x = freeDist * cos(CamPitch) * sin(CamYaw);
+            offset.y = freeDist * sin(CamPitch);
+            offset.z = freeDist * cos(CamPitch) * cos(CamYaw);
+        } else {
+            // Orbit/Bird mode: normal distance
+            offset.x = CamDist * cos(CamPitch) * sin(CamYaw);
+            offset.y = CamDist * sin(CamPitch);
+            offset.z = CamDist * cos(CamPitch) * cos(CamYaw);
+        }
         CamPos = CamTarget + offset;
+
+        // Prevent camera from going underground
+        if (CamPos.y < 0.5f) {
+            CamPos.y = 0.5f;
+        }
+
+        // Adjust FOV based on camera mode
+        float targetFOV = 45.0f;
+        if (cameraMode == BIRD) targetFOV = 60.0f;  // Wider view for bird mode
+        if (cameraMode == FREE) targetFOV = 75.0f;  // Wide for first-person feel
+        FOVdeg = glm::mix(FOVdeg, targetFOV, deltaT * 3.0f);
 
         glm::mat4 VP = MakeViewProjectionLookAt(
             CamPos,
